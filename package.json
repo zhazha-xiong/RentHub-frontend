@@ -1,0 +1,17 @@
+{
+  "name": "renthub-vue",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "栖居 RentHub —— Vue 3 + Vue Router 单页应用（无构建工具，node 直接启动）",
+  "scripts": {
+    "start": "node server.mjs",
+    "serve": "node server.mjs",
+    "check": "node --check server.mjs && node --check server/api.mjs && node --check server/store.mjs && node --check server/session.mjs && node --check server/amap.mjs && node --check server/data/catalog.mjs && node --check server/data/schema.mjs && node --check server/data/adapters/v2demo.mjs && node --check server/data/adapters/places.mjs"
+  },
+  "dependencies": {
+    "vue": "3.5.41",
+    "vue-router": "4.6.4"
+  },
+  "vendorNote": "运行不需要 npm install：vue / vue-router 已在 vendor/ 里（浏览器可直接用的全局构建）"
+}

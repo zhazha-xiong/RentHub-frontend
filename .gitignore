@@ -1,0 +1,11 @@
+# 运行时产物 / 依赖
+node_modules/
+runtime/
+cache/
+.npm-cache/
+.pnpm-store/
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+*.log
