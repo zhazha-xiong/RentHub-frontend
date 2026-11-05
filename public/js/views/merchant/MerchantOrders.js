@@ -1,9 +1,9 @@
 /**
  * 商家端 · 订单管理（v2 merchant-orders.html）
  */
-import { ref, computed, watch, useRoute, useRouter } from '../lib.js';
-import { api } from '../api.js';
-import { setMerchantCounts, toast } from '../store.js';
+import { ref, computed, watch, useRoute, useRouter } from '../../lib.js';
+import { api } from '../../api.js';
+import { setMerchantCounts, toast } from '../../store.js';
 
 export default {
   name: 'MerchantOrders',

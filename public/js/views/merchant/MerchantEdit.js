@@ -4,9 +4,9 @@
  * 表单内容写回后端：改动即防抖存草稿（/api/drafts/merchant:edit:<id>），
  * 「保存并上架」才真正提交到 /api/merchant/houses/:id 并落盘。
  */
-import { ref, reactive, computed, watch, onMounted, useRoute, useRouter } from '../lib.js';
-import { api } from '../api.js';
-import { state, useDraft, toast } from '../store.js';
+import { ref, reactive, computed, watch, onMounted, useRoute, useRouter } from '../../lib.js';
+import { api } from '../../api.js';
+import { state, useDraft, toast } from '../../store.js';
 
 export default {
   name: 'MerchantEdit',

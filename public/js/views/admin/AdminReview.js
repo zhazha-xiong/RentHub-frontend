@@ -4,9 +4,9 @@
  * 选中哪一条写进 URL（?id=rv-1），刷新后仍停在同一份材料上；
  * 「驳回原因」也存后端草稿，不会被刷新清掉。
  */
-import { ref, watch, computed, useRoute, useRouter } from '../lib.js';
-import { api } from '../api.js';
-import { state, useDraft, toast } from '../store.js';
+import { ref, watch, computed, useRoute, useRouter } from '../../lib.js';
+import { api } from '../../api.js';
+import { state, useDraft, toast } from '../../store.js';
 
 const STATE_TAG = {
   pending: { text: '待审核', cls: 'warn' },

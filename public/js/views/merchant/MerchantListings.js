@@ -1,9 +1,9 @@
 /**
  * 商家端 · 房源管理（v2 merchant-listings.html，独立 URL /merchant/listings）
  */
-import { ref, computed, watch, useRoute, useRouter } from '../lib.js';
-import { api } from '../api.js';
-import { state, toast } from '../store.js';
+import { ref, computed, watch, useRoute, useRouter } from '../../lib.js';
+import { api } from '../../api.js';
+import { state, toast } from '../../store.js';
 
 const STATUS = ['全部状态', '在架', '已出租', '已下架'];
 

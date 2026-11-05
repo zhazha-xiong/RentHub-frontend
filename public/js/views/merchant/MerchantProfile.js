@@ -4,9 +4,9 @@
  * 「保存店铺信息」写回后端（PUT /api/merchant/profile）；
  * 表单改动同时防抖存草稿，刷新不丢。
  */
-import { ref, reactive, watch, onMounted, useRouter } from '../lib.js';
-import { api } from '../api.js';
-import { useDraft, toast } from '../store.js';
+import { ref, reactive, watch, onMounted, useRouter } from '../../lib.js';
+import { api } from '../../api.js';
+import { useDraft, toast } from '../../store.js';
 
 export default {
   name: 'MerchantProfile',
