@@ -1,0 +1,14 @@
+# 统一换行，避免 Windows 提交把整个仓库刷成 CRLF
+* text=auto eol=lf
+
+# 图片 / 二进制：不做换行转换、不生成文本 diff
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# 第三方运行时：原样保存，不参与 diff 统计噪音
+vendor/** linguist-vendored

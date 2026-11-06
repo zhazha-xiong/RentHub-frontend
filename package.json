@@ -1,17 +1,36 @@
 {
   "name": "renthub-vue",
-  "private": true,
   "version": "1.0.0",
+  "private": true,
+  "description": "栖居 RentHub —— 大连租房平台前端（Vue 3 + Vue Router，零构建的前端 SPA + 零依赖 Node 服务）",
   "type": "module",
-  "description": "栖居 RentHub —— Vue 3 + Vue Router 单页应用（无构建工具，node 直接启动）",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhazha-xiong/RentHub-frontend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zhazha-xiong/RentHub-frontend/issues"
+  },
+  "keywords": [
+    "vue3",
+    "vue-router",
+    "spa",
+    "rental",
+    "renthub",
+    "no-build"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.mjs",
+    "dev": "node server.mjs",
     "serve": "node server.mjs",
     "check": "node --check server.mjs && node --check server/api.mjs && node --check server/store.mjs && node --check server/session.mjs && node --check server/amap.mjs && node --check server/data/catalog.mjs && node --check server/data/schema.mjs && node --check server/data/adapters/v2demo.mjs && node --check server/data/adapters/places.mjs"
   },
   "dependencies": {
     "vue": "3.5.41",
     "vue-router": "4.6.4"
-  },
-  "vendorNote": "运行不需要 npm install：vue / vue-router 已在 vendor/ 里（浏览器可直接用的全局构建）"
+  }
 }
