@@ -2,7 +2,7 @@
   "name": "renthub-vue",
   "version": "1.0.0",
   "private": true,
-  "description": "栖居 RentHub —— 大连租房平台前端（Vue 3 + Vue Router，零构建的前端 SPA + 零依赖 Node 服务）",
+  "description": "栖居 RentHub 前端第一版原型（v1）—— 大连租房平台 SPA，Vue 3 + Vue Router，零构建 + 零依赖 Node 服务",
   "type": "module",
   "license": "UNLICENSED",
   "repository": {
