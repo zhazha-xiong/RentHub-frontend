@@ -35,13 +35,16 @@ Bearer 鉴权、统一错误体、游标分页、订单五态状态机、房源�
 
 ## 测试与 CI
 
-| 层 | 内容 | 命令 |
-| --- | --- | --- |
-| L1 | 契约测试（29 例，Vitest，无浏览器） | `cd web && npm test` |
-| L2 | 类型检查 + 生产构建 | `npm run typecheck` / `npm run build` |
-| L3 | Playwright E2E：主流程 + 三角色越权 | `npm run test:e2e` |
+**测试全部在 CI 里跑，本地只需要 `npm run dev`。**
 
-CI：[`.github/workflows/web-ci.yml`](.github/workflows/web-ci.yml)，改动 `web/**` 时触发；L1+L2 必跑，L3 在装完 chromium 后跑，失败上传报告。
+| 层 | 内容 |
+| --- | --- |
+| L1 | 契约测试（29 例，Vitest，无浏览器） |
+| L2 | `vue-tsc` 类型检查 + `vite build` |
+| L3 | Playwright E2E：主流程 + 三角色越权 |
+
+CI：[`.github/workflows/web-ci.yml`](.github/workflows/web-ci.yml)，改动 `web/**` 时触发；
+npm 依赖与 Playwright 浏览器都走 Actions 缓存，L3 复用 L2 的构建产物，失败上传报告 artifact。
 
 ## 文档
 

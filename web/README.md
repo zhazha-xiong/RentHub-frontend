@@ -105,15 +105,27 @@ web/
 
 测试钩子（真后端不实现）：`/__mock__/reset`、`/__mock__/state`、`/__mock__/tick?days=N`、`/__mock__/listings/bulk`，以及 `X-Mock-Fail` / `X-Mock-Delay` 故障注入。
 
-## 自动化测试
+## 自动化测试（由 CI 负责）
 
-| 层 | 命令 | 覆盖 | 位置 |
-| --- | --- | --- | --- |
-| L1 契约 | `npm test` | 29 例：错误体、鉴权与锁定、refresh 轮换、列表筛选/游标、详情字段、收藏、下单金额与锁定、状态机、越权、支付幂等、资质闸门、审核校验、禁用联动、通知已读、SSE 事件序列、参考价降级/样本不足/补样本、tick 自动关单 | `tests/contract.spec.ts` |
-| L2 类型与构建 | `npm run typecheck` / `npm run build` | `vue-tsc` 严格模式 + 生产构建 | CI job `contract-and-build` |
-| L3 E2E | `npm run test:e2e` | 租客下单支付、商家接单完成、租客越权被拦、未登录回跳、管理员驳回校验、AI 流式问答 | `e2e/flows.spec.ts` |
+**约定的工作方式：本地只跑 `npm run dev` 看页面，所有测试交给 GitHub Actions。**
+改动 `web/**` 推到 `main` 或 `feat/**` / `fix/**`、或开 PR 时自动触发 `.github/workflows/web-ci.yml`。
 
-CI：`.github/workflows/web-ci.yml`，push / PR 到 `main` 且改动 `web/**` 时触发；L1+L2 必跑，L3 装 chromium 后跑，失败上传 `playwright-report`。
+| 层 | 内容 | CI 命令 |
+| --- | --- | --- |
+| L1 契约 | 29 例：错误体、鉴权与锁定、refresh 轮换、列表筛选/游标、详情字段、收藏、下单金额与锁定、状态机、越权、支付幂等、资质闸门、审核校验、禁用联动、通知已读、SSE 事件序列、参考价降级/样本不足/补样本、tick 自动关单 | `npm test`（Vitest） |
+| L2 类型/构建 | `vue-tsc` 严格模式 + `vite build` | `npm run typecheck` / `npm run build` |
+| L3 E2E | 租客下单支付、商家接单完成、租客越权被拦、未登录回跳、管理员驳回校验、AI 流式问答 | `npm run test:e2e`（Playwright + chromium） |
+
+CI 的缓存策略（减少每次运行时间）：
+
+- **npm 依赖**：`actions/setup-node` 的 `cache: npm`（按 `web/package-lock.json` 作 key）+ `npm ci --prefer-offline`
+- **Playwright 浏览器**：`actions/cache` 缓存 `~/.cache/ms-playwright`，key 跟随 lock 文件（playwright 版本变化自动失效），命中时只跑 `install-deps`
+- **构建产物**：L2 阶段 `upload-artifact`，L3 用 `download-artifact` 复用 `web/dist`，不重复构建
+- **并发**：同一 ref 的新提交会取消上一次运行（`concurrency.cancel-in-progress`）
+
+失败时上传 `playwright-report` 与 `test-results`（含 trace / 截图）作为 artifact。
+
+> 本地临时排查也可以跑 `npm test` / `npm run test:e2e`，但**不要求**：本地环境（尤其 Windows 沙箱）不一定能起 Chromium。
 
 ## 与旧版的关系
 

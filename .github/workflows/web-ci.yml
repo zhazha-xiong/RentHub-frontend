@@ -1,9 +1,12 @@
 name: web-ci
 
-# 新前端（web/）的自动化测试：L1 契约 + L2 类型/构建 + L3 端到端
+# 新前端（web/）的自动化测试 —— 测试全部在 CI 里跑，本地只需要 npm run dev
+#   L1 契约测试（假后端，无浏览器）
+#   L2 类型检查 + 生产构建
+#   L3 Playwright 端到端（主流程 + 三角色越权）
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/**', 'fix/**']
     paths:
       - 'web/**'
       - '.github/workflows/web-ci.yml'
@@ -21,21 +24,28 @@ defaults:
   run:
     working-directory: web
 
+env:
+  # 让 npm 尽量复用缓存，减少下载
+  npm_config_prefer_offline: 'true'
+  npm_config_audit: 'false'
+  npm_config_fund: 'false'
+
 jobs:
   contract-and-build:
-    name: L1 契约测试 + 类型检查 + 构建
+    name: L1 契约 + L2 类型/构建
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: 配置 Node（npm 依赖缓存）
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: 安装依赖
-        run: npm ci
+      - name: 安装依赖（命中缓存时走离线包）
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: 类型检查（vue-tsc）
         run: npm run typecheck
@@ -46,12 +56,13 @@ jobs:
       - name: 生产构建
         run: npm run build
 
-      - name: 上传构建产物
+      - name: 上传构建产物（给 E2E 复用，避免重复构建）
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: web/dist
-          retention-days: 7
+          retention-days: 3
+          if-no-files-found: error
 
   e2e:
     name: L3 端到端（Playwright）
@@ -60,27 +71,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: 配置 Node（npm 依赖缓存）
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: 安装依赖
-        run: npm ci
+      - name: 安装依赖（命中缓存时走离线包）
+        run: npm ci --prefer-offline --no-audit --no-fund
 
-      - name: 安装 Chromium
+      # Chromium 体积大，单独缓存：key 跟随 package-lock（playwright 版本在 lock 里）
+      - name: 缓存 Playwright 浏览器
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: 安装 Chromium（未命中缓存时）
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: 构建（preview 需要 dist）
-        run: npm run build
+      - name: 安装系统依赖（命中缓存时仍需系统库）
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: 复用 L1 阶段构建出的 dist
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
 
       - name: L3 E2E（主流程 + 三角色越权）
         run: npm run test:e2e
         env:
           CI: 'true'
 
-      - name: 上传 Playwright 报告
+      - name: 上传 Playwright 报告与 trace
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -89,3 +119,4 @@ jobs:
             web/playwright-report
             web/test-results
           retention-days: 7
+          if-no-files-found: ignore
