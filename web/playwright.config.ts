@@ -24,10 +24,13 @@ export default defineConfig({
    * 只起 preview 一个 webServer：假后端由 vite.config.ts 的 mockBackend 插件
    * 在 configurePreviewServer 里同进程拉起（监听 MOCK_PORT=8787）。
    * 不要再单独配 `node mock/server.mjs` —— 两个进程抢 8787 会 EADDRINUSE。
+   *
+   * 必须显式 --host 127.0.0.1：vite preview 默认 host=localhost，Linux 上可能解析到
+   * ::1（IPv6），而 baseURL 是 127.0.0.1 → 探测能过、page.goto 却 ERR_CONNECTION_REFUSED。
    */
   webServer: [
     {
-      command: 'npm run preview -- --port 4173 --strictPort',
+      command: 'npm run preview -- --port 4173 --strictPort --host 127.0.0.1',
       port: 4173,
       reuseExistingServer: !process.env.CI,
       timeout: 90_000,
