@@ -20,18 +20,18 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: process.env.CI ? 'retain-on-failure' : 'off',
   },
+  /*
+   * 只起 preview 一个 webServer：假后端由 vite.config.ts 的 mockBackend 插件
+   * 在 configurePreviewServer 里同进程拉起（监听 MOCK_PORT=8787）。
+   * 不要再单独配 `node mock/server.mjs` —— 两个进程抢 8787 会 EADDRINUSE。
+   */
   webServer: [
-    {
-      command: 'node mock/server.mjs',
-      port: 8787,
-      reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
-    },
     {
       command: 'npm run preview -- --port 4173 --strictPort',
       port: 4173,
       reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
+      timeout: 90_000,
+      env: { MOCK_PORT: '8787' },
     },
   ],
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

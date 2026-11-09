@@ -18,7 +18,8 @@
  */
 import { createServer } from 'node:http'
 import { createHmac, randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import * as seed from './data/seed.mjs'
 
 /* ==========================================================================
@@ -1546,8 +1547,13 @@ export function stopMockServer() {
   })
 }
 
-/* 直接 `node mock/server.mjs` 时自动监听；被 Vite 插件 import 时不自动启动 */
-if (process.argv[1] && process.argv[1].endsWith('mock/server.mjs') && !process.env.VITEST) {
+/* 直接 `node mock/server.mjs` 时自动监听；被 Vite 插件 import 时不自动启动。
+ * 注意：必须用 resolve 后的绝对路径比较 —— Node 会把 argv[1] 解析成平台分隔符的绝对路径，
+ * 用 endsWith('mock/server.mjs') 在 Windows 上永远匹配不到（反斜杠）。
+ */
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (isDirectRun && !process.env.VITEST) {
   startMockServer().catch((err) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`端口 ${process.env.PORT || 8787} 已被占用：先停掉占用进程，或换 PORT=xxxx 启动`)

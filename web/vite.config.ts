@@ -17,15 +17,29 @@ const proxy = {
  * dev / preview 时自动拉起假后端，做到「一条命令就能跑」：
  * 前端始终只认 /api/v1，由 Vite 代理到假后端 —— 将来换真后端
  * 只要改 VITE_API_BASE 或这里的 target，页面代码零改动。
+ *
+ * 端口已被占用时（例如 Playwright 已单独起了一个 mock、或本地已有服务）
+ * 静默跳过，不阻断 dev/preview —— 否则 E2E 会因为 EADDRINUSE 起不来。
  */
 function mockBackend() {
+  const ensure = async () => {
+    try {
+      await startMockServer({ port: MOCK_PORT, quiet: true })
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === 'EADDRINUSE') {
+        console.warn(`[mock] 端口 ${MOCK_PORT} 已被占用，复用已有假后端`)
+        return
+      }
+      throw err
+    }
+  }
   return {
     name: 'renthub-mock-backend',
     async configureServer() {
-      await startMockServer({ port: MOCK_PORT, quiet: true })
+      await ensure()
     },
     async configurePreviewServer() {
-      await startMockServer({ port: MOCK_PORT, quiet: true })
+      await ensure()
     },
   }
 }
