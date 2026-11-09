@@ -51,6 +51,15 @@ web/mock/.data/
 !.env.example
 config.local.json
 config.server.local.json
+# 导出的 GitHub PAT / 各种临时令牌一律不要进仓库
+token.txt
+*.pat
+secrets*.txt
+secrets*.json
+
+# ---------- TS 增量 / E2E 登录态 ----------
+*.tsbuildinfo
+web/e2e/.auth/
 
 # ---------- 编辑器 / 系统 ----------
 .vscode/*

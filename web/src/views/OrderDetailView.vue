@@ -7,6 +7,11 @@ import type { OrderDetail } from '@/api/types'
 import { ORDER_STATUS, dateTime, money } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 
+/**
+ * 订单详情 —— 沿用 v2 的页面骨架：
+ *   .crumbs → .head（订单号 + 状态）→ .split（左：房源快照 .order + 两张 .table；右：.summary 金额与操作）
+ * v2 没有独立的订单详情页，这里用的是 v2 已有的 .split / .order / .table / .summary 组合。
+ */
 const route = useRoute()
 const auth = useAuthStore()
 const order = ref<OrderDetail | null>(null)
@@ -15,6 +20,15 @@ const acting = ref(false)
 
 const id = computed(() => String(route.params.id))
 const status = computed(() => (order.value ? ORDER_STATUS[order.value.status] : null))
+
+/** 状态 → v2 现有的 tag 变体 */
+const STATUS_TAG: Record<string, string> = {
+  pending: 'tag warn',
+  confirmed: 'tag ok',
+  completed: 'tag plain',
+  rejected: 'tag warn',
+  cancelled: 'tag plain',
+}
 
 async function load() {
   loading.value = true
@@ -83,98 +97,128 @@ function completeOrder() {
   if (order.value) void run(() => orderApi.complete(order.value!.id), '订单已完成')
 }
 
+/** 快照字段是 Record<string, unknown>，统一走这个取字符串 */
+function snap(key: string): string {
+  const v = order.value?.snapshot?.[key]
+  return v == null ? '' : String(v)
+}
+
 onMounted(load)
 </script>
 
 <template>
-  <a-spin :spinning="loading">
-    <a-result v-if="!order && !loading" status="404" title="订单不存在" />
+  <div>
+    <p v-if="order" class="crumbs">
+      <router-link to="/orders">我的订单</router-link><span>/</span>{{ order.order_no }}
+    </p>
 
-    <div v-else-if="order">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px">
+    <p v-if="loading" class="loading-hint">正在加载订单…</p>
+    <p v-else-if="!order" class="empty">订单不存在，<router-link to="/orders">回到订单列表</router-link></p>
+
+    <template v-else>
+      <div class="head">
         <div>
-          <h1 style="font-size: 22px; margin: 0">订单 {{ order.order_no }}</h1>
-          <div class="rh-muted" style="margin-top: 4px">下单时间 {{ dateTime(order.created_at) }}</div>
+          <h1>订单 {{ order.order_no }}</h1>
+          <p class="sub">下单时间 {{ dateTime(order.created_at) }}</p>
         </div>
-        <a-tag :color="status?.color" style="font-size: 14px; padding: 2px 10px">{{ status?.text }}</a-tag>
+        <div class="right">
+          <span :class="STATUS_TAG[order.status] ?? 'tag'">{{ status?.text ?? order.status }}</span>
+        </div>
       </div>
 
-      <a-row :gutter="20" style="margin-top: 18px">
-        <a-col :xs="24" :md="15">
-          <a-card title="房源快照">
-            <a-space align="start">
-              <img :src="order.cover" alt="" style="width: 160px; height: 120px; object-fit: cover; border-radius: 6px" />
-              <div>
-                <div style="font-weight: 600; font-size: 16px">{{ order.listing_title }}</div>
-                <div class="rh-muted" style="margin-top: 6px">
-                  {{ String(order.snapshot?.layout ?? '') }} · {{ String(order.snapshot?.regionName ?? '') }}
-                </div>
-                <div class="rh-muted">入住 {{ order.check_in_date }} · 租期 {{ order.months }} 个月</div>
-                <a-button size="small" style="margin-top: 8px" @click="$router.push(`/listings/${String(order.snapshot?.listingId ?? '')}`)">
-                  查看房源
-                </a-button>
-              </div>
-            </a-space>
-          </a-card>
-
-          <a-card title="状态流水" style="margin-top: 16px">
-            <a-timeline>
-              <a-timeline-item v-for="(log, i) in order.logs" :key="i" :color="i === order.logs.length - 1 ? 'blue' : 'gray'">
+      <div class="split">
+        <div>
+          <div class="fieldset">
+            <h2>房源快照</h2>
+            <article class="order" style="margin-top: 0">
+              <div class="body">
+                <img :src="order.cover" :alt="order.listing_title" loading="lazy" />
                 <div>
-                  {{ log.from_status ? `${ORDER_STATUS[log.from_status]?.text} → ` : '' }}{{ ORDER_STATUS[log.to_status]?.text }}
-                  <span class="rh-muted">· {{ log.operator_name }} · {{ dateTime(log.created_at) }}</span>
+                  <p class="t">{{ order.listing_title || snap('title') }}</p>
+                  <p class="m">{{ snap('regionName') }}<template v-if="snap('layout')"> · {{ snap('layout') }}</template></p>
+                  <p class="m">入住 {{ order.check_in_date }} · 租期 {{ order.months }} 个月</p>
                 </div>
-                <div v-if="log.reason" class="rh-muted">原因：{{ log.reason }}</div>
-              </a-timeline-item>
-            </a-timeline>
-          </a-card>
+                <div class="amt">
+                  <b>{{ money(order.total_amount) }}</b>
+                  <p>含押金 {{ money(order.deposit) }}</p>
+                </div>
+              </div>
+              <div class="foot">
+                <router-link
+                  v-if="snap('listingId')"
+                  class="btn ghost sm"
+                  :to="`/listings/${snap('listingId')}`"
+                  style="text-decoration: none; display: inline-flex; align-items: center"
+                >
+                  查看房源
+                </router-link>
+              </div>
+            </article>
+          </div>
 
-          <a-card title="支付流水" style="margin-top: 16px">
-            <a-empty v-if="!order.payments.length" description="暂无支付流水" />
-            <a-list v-else size="small" :data-source="order.payments">
-              <template #renderItem="{ item }">
-                <a-list-item>
-                  <span>{{ item.type === 'pay' ? '支付' : '退款' }}</span>
-                  <span class="rh-muted">{{ item.trade_no }}</span>
-                  <span class="rh-price">{{ money(item.amount) }} 元</span>
-                  <span class="rh-muted">{{ dateTime(item.created_at) }}</span>
-                </a-list-item>
-              </template>
-            </a-list>
-          </a-card>
-        </a-col>
+          <div class="panel">
+            <h2>状态流水</h2>
+            <table class="table">
+              <thead>
+                <tr><th>时间</th><th>变更</th><th>操作人</th><th>原因</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="(log, i) in order.logs" :key="i">
+                  <td>{{ dateTime(log.created_at) }}</td>
+                  <td>
+                    <span class="tag">{{ ORDER_STATUS[log.to_status]?.text ?? log.to_status }}</span>
+                    <span v-if="log.from_status" class="m" style="margin-left: 6px; color: var(--text-3)">
+                      原 {{ ORDER_STATUS[log.from_status]?.text ?? log.from_status }}
+                    </span>
+                  </td>
+                  <td>{{ log.operator_name }}</td>
+                  <td class="m">{{ log.reason || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-        <a-col :xs="24" :md="9">
-          <a-card title="金额">
-            <a-descriptions :column="1" size="small">
-              <a-descriptions-item label="月租">{{ money(order.rent) }} 元</a-descriptions-item>
-              <a-descriptions-item label="租期">{{ order.months }} 个月</a-descriptions-item>
-              <a-descriptions-item label="押金">{{ money(order.deposit) }} 元</a-descriptions-item>
-              <a-descriptions-item label="服务费">{{ money(order.service_fee) }} 元</a-descriptions-item>
-            </a-descriptions>
-            <a-divider style="margin: 12px 0" />
-            <div style="display: flex; justify-content: space-between; align-items: baseline">
-              <span class="rh-muted">合计</span>
-              <span class="rh-price" style="font-size: 22px">{{ money(order.total_amount) }} 元</span>
-            </div>
+          <div class="panel">
+            <h2>支付流水</h2>
+            <p v-if="!order.payments.length" class="hint">暂无支付流水。</p>
+            <table v-else class="table">
+              <thead>
+                <tr><th>时间</th><th>类型</th><th>交易号</th><th class="num">金额</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in order.payments" :key="p.id">
+                  <td>{{ dateTime(p.created_at) }}</td>
+                  <td>{{ p.type === 'pay' ? '支付' : '退款' }}</td>
+                  <td class="m">{{ p.trade_no }}</td>
+                  <td class="num">{{ money(p.amount) }} 元</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-            <a-space direction="vertical" style="width: 100%; margin-top: 16px">
-              <a-button v-if="order.can_pay" type="primary" block :loading="acting" @click="pay">
-                模拟支付 {{ money(order.total_amount) }} 元
-              </a-button>
-              <a-button v-if="order.can_confirm" type="primary" block :loading="acting" @click="confirmOrder">
-                接单
-              </a-button>
-              <a-button v-if="order.can_complete" block :loading="acting" @click="completeOrder">
-                标记完成
-              </a-button>
-              <a-button v-if="order.can_reject" danger block :loading="acting" @click="reject">拒单</a-button>
-              <a-button v-if="order.can_cancel" block :loading="acting" @click="cancel">取消订单</a-button>
-            </a-space>
-            <div v-if="order.reason" class="rh-muted" style="margin-top: 12px">原因：{{ order.reason }}</div>
-          </a-card>
-        </a-col>
-      </a-row>
-    </div>
-  </a-spin>
+        <aside class="summary">
+          <h2>金额</h2>
+          <div class="row"><span>月租</span><b>{{ money(order.rent) }}</b></div>
+          <div class="row"><span>租期</span><b>{{ order.months }} 个月</b></div>
+          <div class="row"><span>押金</span><b>{{ money(order.deposit) }}</b></div>
+          <div class="row"><span>服务费</span><b>{{ money(order.service_fee) }}</b></div>
+          <div class="total"><span>合计</span><b>{{ money(order.total_amount) }}</b></div>
+
+          <button v-if="order.can_pay" class="btn" type="button" :disabled="acting" @click="pay">
+            模拟支付 {{ money(order.total_amount) }} 元
+          </button>
+          <button v-if="order.can_confirm" class="btn" type="button" :disabled="acting" @click="confirmOrder">接单</button>
+          <button v-if="order.can_complete" class="btn ghost" type="button" :disabled="acting" @click="completeOrder">标记完成</button>
+          <button v-if="order.can_reject" class="btn ghost" type="button" :disabled="acting" @click="reject">拒单</button>
+          <button v-if="order.can_cancel" class="btn ghost" type="button" :disabled="acting" @click="cancel">取消订单</button>
+
+          <p v-if="order.reason" class="fine">原因：{{ order.reason }}</p>
+          <p v-if="!order.can_pay && !order.can_confirm && !order.can_complete && !order.can_reject && !order.can_cancel" class="fine">
+            当前状态没有可执行的操作。
+          </p>
+        </aside>
+      </div>
+    </template>
+  </div>
 </template>

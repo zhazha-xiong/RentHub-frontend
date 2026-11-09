@@ -76,12 +76,23 @@ export interface ListingCard {
   id: number
   title: string
   cover: string
+  /** 封面原图宽高：瀑布流据此保持真实比例（旧版是手工写 --ar，现在由后端给） */
+  cover_w?: number
+  cover_h?: number
   region_name: string
   community: string
   layout: string
   area: number
   floor_desc: string
+  /** 朝向/装修的中文名，卡片 meta 直接用（后端字典翻译，前端不做映射） */
+  orientation_name?: string
+  decoration_name?: string
+  rent_type?: 'whole' | 'shared'
   rent: number
+  /** 上架时间：卡片左上角「3 天前上架」由它算 */
+  published_at?: string | null
+  /** 后端算好的上架文案（今天上架 / 3 天前上架），前端直接显示 */
+  published_label?: string
   tags: string[]
 }
 
@@ -114,7 +125,7 @@ export interface MerchantBrief {
 export interface ListingDetail extends ListingCard {
   description: string
   address: string
-  metro: { line: string; walk_minutes: number } | null
+  metro: { line: string; walk_minutes: number; walk_meters?: number | null } | null
   spec: ListingSpec
   facilities: { bed: string[]; public: string[] }
   images: string[]
@@ -124,6 +135,8 @@ export interface ListingDetail extends ListingCard {
   view_count?: number
   favorite_count?: number
   favorited?: boolean
+  /** 相关推荐（给租客看，假后端随机推荐 3 套；v2 detail.html 的同名板块） */
+  related?: ListingCard[]
   /** 旧版「房源描述」板块底部的 kv：付款方式 / 看房 / 车位 */
   payment_method?: string | null
   viewing_method?: string | null
@@ -213,6 +226,10 @@ export interface OrderCreateReq {
   listing_id: number
   months: number
   check_in_date: string
+  /** v2「确认订单」里的三个选填项，后端存进订单快照 */
+  guests?: number
+  phone?: string
+  note?: string
 }
 
 export interface Notice {

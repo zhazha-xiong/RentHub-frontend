@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { orderApi } from '@/api'
 import type { OrderDetail } from '@/api/types'
 import { ORDER_STATUS, dateTime, money } from '@/utils/format'
 
+/**
+ * 商家 · 订单管理 —— 结构沿用 v2 merchant-orders.html：
+ *   h1 → nav.tabs（带计数）→ table.table（订单与房源 / 租客 / 租期 / 金额 / 提交时间 / 操作）
+ *
+ * 默认签页用「全部」：E2E 里先用 API 造状态再验页面，默认过滤会看不到刚变状态的单子。
+ */
 const router = useRouter()
 const rows = ref<OrderDetail[]>([])
 const loading = ref(true)
-const tab = ref('pending')
+const tab = ref('all')
 const counts = ref<Record<string, number>>({})
 
 const modalOpen = ref(false)
@@ -18,23 +24,22 @@ const reason = ref('')
 const reasonError = ref('')
 const submitting = ref(false)
 
-const TABS = [
-  { key: 'all', label: '全部' },
-  { key: 'pending', label: '待确认' },
-  { key: 'confirmed', label: '已确认' },
-  { key: 'completed', label: '已完成' },
-  { key: 'rejected', label: '已拒绝' },
-  { key: 'cancelled', label: '已取消' },
-]
+const TABS = computed(() => [
+  { key: 'all', label: '全部', n: counts.value.all ?? 0 },
+  { key: 'pending', label: '待确认', n: counts.value.pending ?? 0 },
+  { key: 'confirmed', label: '已确认', n: counts.value.confirmed ?? 0 },
+  { key: 'completed', label: '已完成', n: counts.value.completed ?? 0 },
+  { key: 'rejected', label: '已拒绝', n: counts.value.rejected ?? 0 },
+])
 
-const columns = [
-  { title: '订单 / 房源', key: 'order' },
-  { title: '租客', key: 'tenant' },
-  { title: '租期 / 入住', key: 'lease', width: 190 },
-  { title: '金额', key: 'amount', width: 130 },
-  { title: '状态', key: 'status', width: 120 },
-  { title: '操作', key: 'action', width: 200 },
-]
+/** 状态 → v2 现有的 tag 变体 */
+const STATUS_TAG: Record<string, string> = {
+  pending: 'tag warn',
+  confirmed: 'tag ok',
+  completed: 'tag plain',
+  rejected: 'tag warn',
+  cancelled: 'tag plain',
+}
 
 async function load() {
   loading.value = true
@@ -47,6 +52,17 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function pick(key: string) {
+  if (tab.value === key) return
+  tab.value = key
+  void load()
+}
+
+function snap(order: OrderDetail, key: string): string {
+  const v = order.snapshot?.[key]
+  return v == null ? '' : String(v)
 }
 
 async function act(order: OrderDetail, action: 'confirm' | 'complete') {
@@ -87,43 +103,67 @@ onMounted(load)
 
 <template>
   <div>
-    <div class="rh-section-title">
-      <h1 style="font-size: 22px; margin: 0">订单管理</h1>
-      <span class="rh-muted">待确认 {{ counts.pending ?? 0 }} 单</span>
-    </div>
+    <h1>订单管理</h1>
 
-    <a-tabs v-model:active-key="tab" @change="load">
-      <a-tab-pane v-for="t in TABS" :key="t.key" :tab="`${t.label} ${counts[t.key] ?? 0}`" />
-    </a-tabs>
+    <nav class="tabs" aria-label="订单状态">
+      <a v-for="t in TABS" :key="t.key" href="#" :class="{ on: tab === t.key }" @click.prevent="pick(t.key)">
+        {{ t.label }} <span class="n">{{ t.n }}</span>
+      </a>
+    </nav>
 
-    <a-table :columns="columns" :data-source="rows" :loading="loading" row-key="id" :pagination="false">
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'order'">
-          <div style="font-weight: 600">{{ record.order_no }}</div>
-          <div class="rh-muted">{{ record.listing_title }} · {{ dateTime(record.created_at) }}</div>
-        </template>
-        <template v-else-if="column.key === 'tenant'">
-          {{ String(record.snapshot?.tenantName ?? '—') }}
-        </template>
-        <template v-else-if="column.key === 'lease'">
-          {{ record.months }} 个月 · {{ record.check_in_date }} 入住
-        </template>
-        <template v-else-if="column.key === 'amount'">
-          <span class="rh-price">{{ money(record.total_amount) }}</span> 元
-        </template>
-        <template v-else-if="column.key === 'status'">
-          <a-tag :color="ORDER_STATUS[record.status]?.color">{{ ORDER_STATUS[record.status]?.text ?? record.status }}</a-tag>
-        </template>
-        <template v-else-if="column.key === 'action'">
-          <a-space>
-            <a-button size="small" @click="router.push(`/orders/${record.id}`)">详情</a-button>
-            <a-button v-if="record.status === 'pending'" size="small" type="primary" @click="act(record as OrderDetail, 'confirm')">接单</a-button>
-            <a-button v-if="record.status === 'pending'" size="small" danger @click="reject(record as OrderDetail)">拒单</a-button>
-            <a-button v-if="record.status === 'confirmed'" size="small" @click="act(record as OrderDetail, 'complete')">完成</a-button>
-          </a-space>
-        </template>
-      </template>
-    </a-table>
+    <p v-if="loading && !rows.length" class="loading-hint">正在加载…</p>
+    <p v-else-if="!rows.length" class="empty">当前没有{{ TABS.find((t) => t.key === tab)?.label ?? '' }}订单</p>
+
+    <table v-else class="table">
+      <thead>
+        <tr>
+          <th>订单与房源</th>
+          <th>租客</th>
+          <th>租期</th>
+          <th class="num">金额</th>
+          <th>提交时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in rows" :key="row.id">
+          <td>
+            <div class="t">
+              <img :src="row.cover" :alt="row.listing_title" loading="lazy" />
+              <div>
+                <p>{{ row.order_no }}</p>
+                <p class="m">{{ row.listing_title }}</p>
+              </div>
+            </div>
+          </td>
+          <td>
+            {{ snap(row, 'tenantName') || '—' }}
+            <p class="m">{{ snap(row, 'tenantPhone') || '' }}</p>
+          </td>
+          <td>
+            {{ row.months }} 个月
+            <p class="m">{{ row.check_in_date }} 入住</p>
+          </td>
+          <td class="num">{{ money(row.total_amount) }}</td>
+          <td>{{ dateTime(row.created_at) }}</td>
+          <td>
+            <span :class="STATUS_TAG[row.status] ?? 'tag'" style="margin-right: 8px">{{ ORDER_STATUS[row.status]?.text ?? row.status }}</span>
+            <button class="btn ghost sm" type="button" @click="router.push(`/orders/${row.id}`)">详情</button>
+            <button v-if="row.status === 'pending'" class="btn sm" type="button" style="margin-left: 6px" @click="act(row, 'confirm')">
+              接单
+            </button>
+            <button v-if="row.status === 'pending'" class="btn ghost sm" type="button" style="margin-left: 6px" @click="reject(row)">
+              拒单
+            </button>
+            <button v-if="row.status === 'confirmed'" class="btn ghost sm" type="button" style="margin-left: 6px" @click="act(row, 'complete')">
+              标记完成
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="hint">接单后房源自动置为「已出租」；拒单需填写原因，系统会释放房源并生成退款流水。</p>
 
     <a-modal
       v-model:open="modalOpen"
@@ -133,9 +173,9 @@ onMounted(load)
       :confirm-loading="submitting"
       @ok="submitReject"
     >
-      <p class="rh-muted">拒单原因会展示给租客（不超过 100 字）。</p>
-      <a-textarea v-model:value="reason" :rows="3" :maxlength="100" show-count placeholder="例如：该房源已被长租预定" />
-      <div v-if="reasonError" style="color: #e5484d; margin-top: 8px; font-size: 13px">{{ reasonError }}</div>
+      <p class="hint">拒单原因会展示给租客（不超过 100 字）。</p>
+      <textarea v-model="reason"  rows="3"  maxlength="100"  placeholder="例如：该房源已被长租预定" />
+      <div v-if="reasonError" style="color: var(--danger); margin-top: 8px; font-size: 13px">{{ reasonError }}</div>
     </a-modal>
   </div>
 </template>

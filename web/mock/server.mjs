@@ -18,9 +18,11 @@
  */
 import { createServer } from 'node:http'
 import { createHmac, randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as seed from './data/seed.mjs'
+import { assetPath, galleryFor, photoKeyFor, photoSize } from './data/photos.mjs'
 
 /* ==========================================================================
  * 常量与通用工具
@@ -138,23 +140,49 @@ const qualifiedMerchant = (userId) => S.qualifications.some((q) => q.userId === 
  * ========================================================================== */
 
 function listingCard(l) {
+  /* 卡片标签与旧版 v2 一致：只放「近地铁 / 有电梯 / 合租」这类硬条件，
+     装修、朝向已经在 meta 那一行里，不重复出现在标签上 */
   const tags = []
-  if (l.metroLine && l.walkMinutes != null) tags.push(`近地铁 ${l.walkMinutes} 分钟`)
+  if (l.metroLine && (l.walkMinutes ?? 99) <= 10) tags.push('近地铁')
   if (l.hasElevator) tags.push('有电梯')
-  if (l.decoration) tags.push(seed.DECORATIONS.find((d) => d.code === l.decoration)?.name ?? l.decoration)
+  if (l.rentType === 'shared') tags.push('合租')
+  const coverKey = l.images?.[0]?.key ?? `listing/${l.id}.jpg`
+  /* 封面真实宽高：前端瀑布流据此保持原图比例（旧版是手工写 --ar，这里由后端给） */
+  const size = photoSize(coverKey) ?? { w: 4, h: 3 }
   return {
     id: l.id,
     title: l.title,
-    cover: `/mock-files/${l.images?.[0]?.key ?? `listing/${l.id}.jpg`}`,
+    cover: `/mock-files/${coverKey}`,
+    cover_w: size.w,
+    cover_h: size.h,
     region_name: regionName(l.regionCode),
     community: l.community ?? '',
-    layout: `${l.rooms}室${l.halls}厅`,
+    layout: l.halls ? `${l.rooms}室${l.halls}厅` : `${l.rooms}室`,
     area: Number(l.area),
     floor_desc: `${l.floor}/${l.totalFloor} 层`,
+    orientation_name: orientName(l.orientation),
+    decoration_name: decoName(l.decoration),
+    rent_type: l.rentType,
     rent: l.rent,
+    published_at: l.publishedAt ?? null,
+    /* 「今天上架 / 3 天前上架」由后端按 mock 的固定当前时间算好（前端不做时间推断，
+       否则浏览器真实时钟与假后端的时间基准不一致时会算出负数） */
+    published_label: publishedLabel(l.publishedAt),
     tags,
   }
 }
+
+function publishedLabel(iso) {
+  if (!iso) return '待上架'
+  const days = Math.floor((S.now - new Date(iso).getTime()) / 86400000)
+  if (Number.isNaN(days)) return '待上架'
+  if (days <= 0) return '今天上架'
+  if (days === 1) return '昨天上架'
+  return `${days} 天前上架`
+}
+
+const orientName = (code) => seed.ORIENTATIONS.find((o) => o.code === code)?.name ?? code ?? ''
+const decoName = (code) => seed.DECORATIONS.find((d) => d.code === code)?.name ?? code ?? ''
 
 function listingDetail(l) {
   const q = S.qualifications.find((x) => x.userId === l.merchantId)
@@ -163,7 +191,15 @@ function listingDetail(l) {
     ...listingCard(l),
     description: l.description ?? '',
     address: l.address,
-    metro: l.metroLine ? { line: l.metroLine, walk_minutes: l.walkMinutes ?? 0 } : null,
+    /* v2 的「位置与交通」写的是「步行 320 米」，所以米数是主数据；
+       只有分钟的老数据按 80 米/分钟折算，避免前端再自己换算 */
+    metro: l.metroLine
+      ? {
+          line: l.metroLine,
+          walk_minutes: l.walkMinutes ?? 0,
+          walk_meters: l.walkMeters ?? (l.walkMinutes != null ? l.walkMinutes * 80 : null),
+        }
+      : null,
     spec: {
       rooms: l.rooms,
       halls: l.halls,
@@ -542,7 +578,38 @@ api['GET /api/v1/listings'] = async ({ q }) => {
   items.sort(sorters[sort])
 
   const paged = page(items, q, (l) => `${l.id}`)
-  return { body: { items: paged.items.map(listingCard), next_cursor: paged.next_cursor, total: items.length } }
+  /* 顶部「N 套在架 · 今日新上 M 套」由后端算好给出（前端不做时间推断） */
+  const online = S.listings.filter((l) => l.status === 'online' && !l.deletedAt)
+  const day = new Date(S.now).toISOString().slice(0, 10)
+  const todayNew = online.filter((l) => String(l.publishedAt ?? '').slice(0, 10) === day).length
+  return {
+    body: {
+      items: paged.items.map(listingCard),
+      next_cursor: paged.next_cursor,
+      total: items.length,
+      stats: { total: online.length, today_new: todayNew },
+    },
+  }
+}
+
+/**
+ * 相关推荐（给租客看的，v2 detail.html 的「相关推荐 · 同区域、同户型、价格接近的 3 套」）
+ * 假后端不做真算法：同区域优先，随机取 3 套，每次请求可以不同（演示用）。
+ */
+function relatedFor(l) {
+  const pool = S.listings.filter((x) => x.id !== l.id && x.status === 'online' && !x.deletedAt)
+  const sameRegion = pool.filter((x) => x.regionCode === l.regionCode)
+  const ordered = [...shuffle(sameRegion), ...shuffle(pool.filter((x) => x.regionCode !== l.regionCode))]
+  return ordered.slice(0, 3).map(listingCard)
+}
+
+function shuffle(list) {
+  const arr = [...list]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
 }
 
 api['GET /api/v1/listings/:id'] = async ({ params, req }) => {
@@ -556,7 +623,7 @@ api['GET /api/v1/listings/:id'] = async ({ params, req }) => {
   } catch {
     favorited = false
   }
-  return { body: { ...listingDetail(l), favorited } }
+  return { body: { ...listingDetail(l), favorited, related: relatedFor(l) } }
 }
 
 function listingWritePayload(body) {
@@ -692,7 +759,18 @@ api['POST /api/v1/orders'] = async ({ req, body }) => {
     totalAmount: l.rent * months + l.deposit + serviceFee,
     checkInDate: body.check_in_date,
     status: 'pending',
-    snapshot: { version: 1, title: l.title, layout: `${l.rooms}室${l.halls}厅`, regionName: regionName(l.regionCode), cover: l.images?.[0]?.key ?? '' },
+    /* v2 的「确认订单」还收了入住人数 / 联系方式 / 备注，这里一并存进快照，
+       真后端接同样三个可选字段即可，前端不用改。 */
+    snapshot: {
+      version: 1,
+      title: l.title,
+      layout: `${l.rooms}室${l.halls}厅`,
+      regionName: regionName(l.regionCode),
+      cover: l.images?.[0]?.key ?? '',
+      guests: Number(body.guests) || 1,
+      phone: body.phone ?? null,
+      note: body.note ?? null,
+    },
     createdAt: nowIso(),
     confirmedAt: null,
     completedAt: null,
@@ -1374,7 +1452,7 @@ const hooks = {
         availableDate: '2026-12-01',
         minLeaseMonths: 6,
         createdAt: nowIso(),
-        images: [{ key: `listing/${id}-1.jpg`, sort: 0, isCover: true }],
+        images: galleryFor(id),
       })
       created.push(id)
     }
@@ -1447,6 +1525,32 @@ function match(method, pathname) {
 
 const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.json': 'application/json' }
 
+/** v2 静态站根目录：真实房源照片的单一真源（带 credits.json 出处，不重复入库） */
+const V2_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../legacy/v2-static')
+
+/**
+ * /mock-files/assets/xxx.jpg → 直接回放 v2 的真实照片字节。
+ * 只有非实拍图（资质证件、演示上传）才回退到 SVG 占位。
+ */
+async function serveRealPhoto(res, key) {
+  /* 演示上传的图片不落盘：按 key 稳定映射到一张真实照片，避免页面上出现色块 */
+  const rel = key.startsWith('upload/') ? photoKeyFor(key) : assetPath(key)
+  if (!rel || rel.includes('..')) return false
+  const file = path.join(V2_ROOT, rel)
+  try {
+    const buf = await readFile(file)
+    res.writeHead(200, {
+      'Content-Type': path.extname(file).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg',
+      'Content-Length': buf.length,
+      'Cache-Control': 'public, max-age=86400',
+    })
+    res.end(buf)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function svgPlaceholder(key) {
   const hue = [...String(key)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 17)
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
@@ -1470,6 +1574,8 @@ async function handle(req, res, traceId) {
 
   if (pathname.startsWith('/mock-files/')) {
     const key = pathname.slice('/mock-files/'.length)
+    /* 真实照片优先（v2 的 9 张实拍图），找不到再回退渐变占位图 */
+    if (await serveRealPhoto(res, key)) return
     const svg = svgPlaceholder(key)
     res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-cache' })
     res.end(svg)

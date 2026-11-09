@@ -4,6 +4,12 @@ name: web-ci
 #   L1 契约测试（假后端，无浏览器）
 #   L2 类型检查 + 生产构建
 #   L3 Playwright 端到端（主流程 + 三角色越权）
+#
+# 缓存策略（按 2026-11 CI 日志的实测耗时优化）：
+#   · npm 依赖：actions/setup-node 自带 cache: npm（命中时 ~14s 解压 42MB 包）
+#   · Playwright 浏览器：用 restore/save 分离，**job 失败也保存**。
+#     之前用单个 actions/cache 时，E2E 一失败 post 步骤就 skipped，
+#     导致浏览器缓存从未落盘，每次都要重下 Chromium（21s）+ 装系统库（12s）。
 on:
   push:
     branches: [main, 'feat/**', 'fix/**']
@@ -29,11 +35,14 @@ env:
   npm_config_prefer_offline: 'true'
   npm_config_audit: 'false'
   npm_config_fund: 'false'
+  # Playwright 浏览器的固定落盘位置（缓存路径与安装路径必须一致）
+  PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
 
 jobs:
   contract-and-build:
     name: L1 契约 + L2 类型/构建
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -67,6 +76,7 @@ jobs:
   e2e:
     name: L3 端到端（Playwright）
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: contract-and-build
     steps:
       - uses: actions/checkout@v4
@@ -81,23 +91,19 @@ jobs:
       - name: 安装依赖（命中缓存时走离线包）
         run: npm ci --prefer-offline --no-audit --no-fund
 
-      # Chromium 体积大，单独缓存：key 跟随 package-lock（playwright 版本在 lock 里）
-      - name: 缓存 Playwright 浏览器
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-
-      - name: 安装 Chromium（未命中缓存时）
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      - name: 安装系统依赖（命中缓存时仍需系统库）
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+      # 不缓存 Chromium：实测安装 21s 里 10.8s 是 apt 装系统库（缓存不了），
+      # 浏览器二进制只有 9.2s，而缓存 ~270MB 的 ms-playwright 目录压缩/还原就要 5-15s，
+      # 净收益≈0。改用 GitHub runner 预装的 Google Chrome，直接省掉整步。
+      - name: 选择浏览器内核（优先 runner 预装的 Google Chrome）
+        id: browser
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            google-chrome --version
+            echo "PW_CHANNEL=chrome" >> "$GITHUB_ENV"
+          else
+            echo "未发现 google-chrome，回退为安装 Playwright Chromium"
+            npx playwright install --with-deps chromium
+          fi
 
       - name: 复用 L1 阶段构建出的 dist
         uses: actions/download-artifact@v4

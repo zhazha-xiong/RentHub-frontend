@@ -1,48 +1,56 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { listingApi, merchantApi } from '@/api'
-import { LISTING_STATUS, money } from '@/utils/format'
+import { LISTING_STATUS, dateOnly, money } from '@/utils/format'
 
+/**
+ * 商家 · 房源管理 —— 结构沿用 v2 merchant-listings.html：
+ *   .head（h1 + 新建房源）→ .toolbar（搜索 + 状态筛选 + 统计）→ table.table
+ */
 type Row = {
   id: number
   title: string
   cover: string
   layout: string
   area: number
+  region_name: string
+  orientation_name?: string
   rent: number
   status: string
   view_count: number
   favorite_count: number
+  published_at: string | null
+}
+
+/** 状态 → v2 现有的 tag 变体 */
+const STATUS_TAG: Record<string, string> = {
+  online: 'tag',
+  rented: 'tag hue',
+  offline: 'tag plain',
+  locked: 'tag warn',
 }
 
 const router = useRouter()
 const rows = ref<Row[]>([])
 const counts = ref<Record<string, number>>({})
 const loading = ref(true)
-const tab = ref('all')
+const statusFilter = ref('all')
+const keyword = ref('')
 
-const TABS = [
-  { key: 'all', label: '全部' },
-  { key: 'online', label: '在架' },
-  { key: 'offline', label: '已下架' },
-  { key: 'locked', label: '已锁定' },
-  { key: 'rented', label: '已出租' },
-]
-
-const columns = [
-  { title: '房源', dataIndex: 'title', key: 'title' },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 110 },
-  { title: '租金', dataIndex: 'rent', key: 'rent', width: 130 },
-  { title: '浏览 / 收藏', key: 'stat', width: 130 },
-  { title: '操作', key: 'action', width: 180 },
-]
+const noteText = computed(
+  () =>
+    `${counts.value.all ?? 0} 套 · 在架 ${counts.value.online ?? 0} · 已出租 ${counts.value.rented ?? 0} · 已下架 ${counts.value.offline ?? 0}`,
+)
 
 async function load() {
   loading.value = true
   try {
-    const data = await merchantApi.listings({ status: tab.value })
+    const data = await merchantApi.listings({
+      status: statusFilter.value === 'all' ? undefined : statusFilter.value,
+      keyword: keyword.value.trim() || undefined,
+    })
     rows.value = data.items as unknown as Row[]
     counts.value = data.counts
   } catch (err) {
@@ -73,56 +81,95 @@ function confirmToggle(row: Row) {
   })
 }
 
+/** 已出租的房源不能上下架，只能去看它的订单 */
+function canToggle(row: Row) {
+  return row.status === 'online' || row.status === 'offline'
+}
+
 onMounted(load)
 </script>
 
 <template>
   <div>
-    <div class="rh-section-title">
-      <h1 style="font-size: 22px; margin: 0">房源管理</h1>
-      <a-space>
-        <span class="rh-muted">共 {{ counts.all ?? 0 }} 套 · 在架 {{ counts.online ?? 0 }}</span>
-        <a-button type="primary" @click="router.push('/merchant/listings/new')">新建房源</a-button>
-      </a-space>
+    <div class="head">
+      <div><h1>房源管理</h1></div>
+      <div class="right">
+        <button class="btn" type="button" @click="router.push('/merchant/listings/new')">新建房源</button>
+      </div>
     </div>
 
-    <a-tabs v-model:active-key="tab" @change="load">
-      <a-tab-pane v-for="t in TABS" :key="t.key" :tab="`${t.label} ${counts[t.key] ?? 0}`" />
-    </a-tabs>
+    <div class="toolbar">
+      <input
+        v-model="keyword"
+        type="search"
+        placeholder="搜索房源标题或小区"
+        aria-label="搜索房源"
+        @keydown.enter.prevent="load()"
+        @blur="load()"
+      />
+      <select v-model="statusFilter" class="select-sm" aria-label="状态筛选" @change="load">
+        <option value="all">全部状态</option>
+        <option value="online">在架</option>
+        <option value="rented">已出租</option>
+        <option value="offline">已下架</option>
+        <option value="locked">已锁定</option>
+      </select>
+      <span class="grow" />
+      <span class="note">{{ noteText }}</span>
+    </div>
 
-    <a-table :columns="columns" :data-source="rows" :loading="loading" row-key="id" :pagination="false">
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'title'">
-          <div style="display: flex; gap: 10px; align-items: center">
-            <img :src="record.cover" alt="" style="width: 72px; height: 54px; object-fit: cover; border-radius: 4px" />
-            <div>
-              <div style="font-weight: 600">{{ record.title }}</div>
-              <div class="rh-muted">{{ record.layout }} · {{ record.area }}㎡</div>
+    <p v-if="loading && !rows.length" class="loading-hint">正在加载…</p>
+    <p v-else-if="!rows.length" class="empty">
+      没有符合条件的房源，<router-link to="/merchant/listings/new">新建一套</router-link>
+    </p>
+
+    <table v-else class="table">
+      <thead>
+        <tr>
+          <th>房源</th>
+          <th>状态</th>
+          <th class="num">租金</th>
+          <th class="num">浏览</th>
+          <th class="num">收藏</th>
+          <th>上架</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in rows" :key="row.id">
+          <td>
+            <div class="t">
+              <img :src="row.cover" :alt="row.title" loading="lazy" />
+              <div>
+                <p>{{ row.title }}</p>
+                <p class="m">{{ row.region_name }} · {{ row.area }}㎡ · {{ row.orientation_name || '—' }}</p>
+              </div>
             </div>
-          </div>
-        </template>
-        <template v-else-if="column.key === 'status'">
-          <a-tag :color="LISTING_STATUS[record.status]?.color">{{ LISTING_STATUS[record.status]?.text ?? record.status }}</a-tag>
-        </template>
-        <template v-else-if="column.key === 'rent'">
-          <span class="rh-price">{{ money(record.rent) }}</span> 元/月
-        </template>
-        <template v-else-if="column.key === 'stat'">
-          {{ record.view_count }} / {{ record.favorite_count }}
-        </template>
-        <template v-else-if="column.key === 'action'">
-          <a-space>
-            <a-button size="small" @click="router.push(`/merchant/listings/${record.id}/edit`)">编辑</a-button>
-            <a-button
-              size="small"
-              :disabled="record.status === 'locked' || record.status === 'rented'"
-              @click="confirmToggle(record as Row)"
+          </td>
+          <td><span :class="STATUS_TAG[row.status] ?? 'tag'">{{ LISTING_STATUS[row.status]?.text ?? row.status }}</span></td>
+          <td class="num">{{ money(row.rent) }} 元/月</td>
+          <td class="num">{{ row.view_count }}</td>
+          <td class="num">{{ row.favorite_count }}</td>
+          <td>{{ row.published_at ? dateOnly(row.published_at) : '—' }}</td>
+          <td>
+            <button class="btn ghost sm" type="button" @click="router.push(`/merchant/listings/${row.id}/edit`)">编辑</button>
+            <button
+              v-if="canToggle(row)"
+              class="btn ghost sm"
+              type="button"
+              style="margin-left: 6px"
+              @click="confirmToggle(row)"
             >
-              {{ record.status === 'online' ? '下架' : '上架' }}
-            </a-button>
-          </a-space>
-        </template>
-      </template>
-    </a-table>
+              {{ row.status === 'online' ? '下架' : '上架' }}
+            </button>
+            <button v-else class="btn ghost sm" type="button" style="margin-left: 6px" @click="router.push('/merchant/orders')">
+              查看订单
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="hint">房源处于「已出租」时不能改价，也不允许删除；已下架的房源可以重新上架（需要资质已通过审核）。</p>
   </div>
 </template>

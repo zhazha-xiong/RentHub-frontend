@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { aiApi, favoriteApi, listingApi } from '@/api'
-import type { ListingCard, ListingDetail, PriceResp } from '@/api/types'
+import { favoriteApi, listingApi } from '@/api'
+import type { ListingCard, ListingDetail } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { bedroomFacilities, publicFacilities } from '@/utils/facilities'
 import { LISTING_STATUS, RENT_TYPE, money } from '@/utils/format'
@@ -14,7 +14,10 @@ import IconDefs from '@/components/IconDefs.vue'
  *   左栏：.media（.stage 大图 + 箭头 + 计数，.thumbs 缩略图）
  *         .panel（房源描述 + kv、位置与交通 + kv、卧室设施 / 公共设施 .facgrid、相关推荐 .related）
  *   右栏：.info（标题 / meta / 价格行 / tags / .spec 户型等信息 / 商家 / 操作 / 问问 AI）
- * 新版改进：右栏 .info-sticky 跟随滚动固定（旧版是普通 aside）。
+ *
+ * 两条与旧版的差异是刻意的：
+ *   1. 右栏 .info-sticky 跟随滚动固定（旧版是普通 aside）；
+ *   2. 这里不放「AI 参考价」—— 参考价只给商家上架时参考，在商家编辑页的 AI 抽屉里。
  */
 const route = useRoute()
 const router = useRouter()
@@ -22,7 +25,6 @@ const auth = useAuthStore()
 
 const detail = ref<ListingDetail | null>(null)
 const related = ref<ListingCard[]>([])
-const price = ref<PriceResp | null>(null)
 const loading = ref(true)
 const errorText = ref('')
 const index = ref(0)
@@ -63,11 +65,8 @@ async function load() {
     const data = await listingApi.detail(String(route.params.id))
     detail.value = data
     favorited.value = Boolean(data.favorited)
-    /* 相关推荐：同区域优先（旧版是「同区域、同户型、价格接近的 3 套」） */
-    const pool = await listingApi.list({ region: data.region_code, sort: 'composite', limit: 6 }).catch(() => null)
-    related.value = (pool?.items ?? []).filter((x) => x.id !== data.id).slice(0, 3)
-    /* AI 参考价（新版功能，用旧版 panel 结构展示；样本不足时只给提示，不给假区间） */
-    price.value = await aiApi.priceReference({ listing_id: data.id }).catch(() => null)
+    /* 相关推荐由后端给（同区域优先 + 随机 3 套），前端不再自己拼列表 */
+    related.value = data.related ?? []
   } catch (err) {
     errorText.value = (err as Error).message
   } finally {
@@ -113,9 +112,9 @@ onMounted(load)
     </p>
 
     <p v-if="loading" class="loading-hint">正在加载房源…</p>
-    <a-result v-else-if="!detail" status="404" :title="errorText || '房源不存在或已下架'">
-      <template #extra><a-button type="primary" @click="router.push('/')">回到找房</a-button></template>
-    </a-result>
+    <p v-else-if="!detail" class="empty">
+      {{ errorText || '房源不存在或已下架' }}，<router-link to="/">回到找房</router-link>
+    </p>
 
     <div v-else class="detail">
       <!-- 左栏 -->
@@ -148,11 +147,12 @@ onMounted(load)
         <section class="panel">
           <h2>房源描述</h2>
           <p class="prose">{{ detail.description }}</p>
+          <!-- kv 只渲染后端真的给了的字段，缺了就整项不显示（前端不编造默认值） -->
           <div class="kv">
-            <span><b>付款方式</b> {{ detail.payment_method || '押一付三' }}</span>
-            <span><b>最短租期</b> {{ detail.spec.min_lease_months }} 个月</span>
-            <span><b>看房</b> {{ detail.viewing_method || '随时可看' }}</span>
-            <span><b>车位</b> {{ detail.parking || '无' }}</span>
+            <span v-if="detail.payment_method"><b>付款方式</b> {{ detail.payment_method }}</span>
+            <span v-if="detail.spec.min_lease_months"><b>最短租期</b> {{ detail.spec.min_lease_months }} 个月</span>
+            <span v-if="detail.viewing_method"><b>看房</b> {{ detail.viewing_method }}</span>
+            <span v-if="detail.parking"><b>车位</b> {{ detail.parking }}</span>
           </div>
         </section>
 
@@ -160,9 +160,10 @@ onMounted(load)
           <h2>位置与交通</h2>
           <p class="prose">{{ detail.address }}</p>
           <div class="kv">
-            <span><b>小区</b> {{ detail.community || '—' }}</span>
+            <span v-if="detail.community"><b>小区</b> {{ detail.community }}</span>
             <span v-if="detail.metro"><b>地铁</b> {{ detail.metro.line }} 号线</span>
-            <span v-if="detail.metro"><b>步行</b> {{ detail.metro.walk_minutes }} 分钟</span>
+            <span v-if="detail.metro?.walk_meters != null"><b>步行</b> {{ detail.metro.walk_meters }} 米</span>
+            <span v-else-if="detail.metro?.walk_minutes"><b>步行</b> {{ detail.metro.walk_minutes }} 分钟</span>
           </div>
         </section>
 
@@ -184,27 +185,9 @@ onMounted(load)
           <p v-else class="hint">商家暂未填写公共设施</p>
         </section>
 
-        <section v-if="price" class="panel">
-          <h2>AI 参考价</h2>
-          <p v-if="price.insufficient || !price.range" class="hint">{{ price.note }}</p>
-          <template v-else>
-            <p class="prose">
-              当前口径「{{ price.scope_label ?? '同区域' }}」，样本 {{ price.sample_count }} 条（最少
-              {{ price.min_sample ?? 3 }} 条）：低区间 {{ money(price.range.p25 ?? price.range.min) }} 元，
-              中位价 <b>{{ money(price.range.median) }}</b> 元，高区间 {{ money(price.range.p75 ?? price.range.max) }} 元。
-            </p>
-            <div v-if="price.peers.length" class="kv">
-              <span v-for="p in price.peers.slice(0, 3)" :key="p.title">
-                <b>{{ p.title }}</b> {{ p.area }}㎡ · {{ p.decoration }} · {{ money(p.rent) }} 元/月
-              </span>
-            </div>
-          </template>
-          <p v-if="price.relaxed && !price.insufficient" class="hint">已放宽口径（{{ price.scope_label }}），仅供参考。</p>
-        </section>
-
         <section class="panel">
           <h2>相关推荐</h2>
-          <p class="hint" style="margin: 0 0 12px">同区域、价格接近的 {{ related.length }} 套</p>
+          <p class="hint" style="margin: 0 0 12px">同区域、同户型、价格接近的 {{ related.length }} 套</p>
           <div v-if="related.length" class="related">
             <router-link v-for="r in related" :key="r.id" class="rel" :to="`/listings/${r.id}`">
               <img :src="r.cover" :alt="r.title" loading="lazy" />

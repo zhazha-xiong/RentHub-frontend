@@ -1,34 +1,41 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { adminApi } from '@/api'
 import type { QualificationItem } from '@/api/types'
 import { QUALIFICATION_STATUS, dateTime } from '@/utils/format'
 
+/**
+ * 管理员 · 资质审核 —— 结构沿用 v2 admin-review.html：
+ *   h1 → .split（左 table.table 列表；右 aside.review-panel 材料 + 通过/驳回）
+ */
 const rows = ref<QualificationItem[]>([])
 const loading = ref(true)
 const status = ref<string>('pending')
+const selectedId = ref<number | null>(null)
 
-const modalOpen = ref(false)
-const target = ref<QualificationItem | null>(null)
 const reason = ref('')
 const reasonError = ref('')
 const submitting = ref(false)
+const acting = ref(false)
 
-const columns = [
-  { title: '商家', key: 'merchant' },
-  { title: '主体名称', key: 'legal' },
-  { title: '材料', key: 'files', width: 170 },
-  { title: '提交时间', key: 'submitted', width: 170 },
-  { title: '状态', key: 'status', width: 110 },
-  { title: '操作', key: 'action', width: 200 },
-]
+const STATUS_TAG: Record<string, string> = {
+  not_submitted: 'tag plain',
+  pending: 'tag warn',
+  approved: 'tag',
+  rejected: 'tag plain',
+}
+
+const selected = computed(() => rows.value.find((r) => r.id === selectedId.value) ?? null)
 
 async function load() {
   loading.value = true
   try {
     const data = await adminApi.qualifications(status.value === 'all' ? undefined : status.value)
     rows.value = data.items
+    if (!rows.value.some((r) => r.id === selectedId.value)) selectedId.value = rows.value[0]?.id ?? null
+    reason.value = ''
+    reasonError.value = ''
   } catch (err) {
     message.error((err as Error).message)
   } finally {
@@ -36,25 +43,22 @@ async function load() {
   }
 }
 
-async function approve(row: QualificationItem) {
+async function approve() {
+  if (!selected.value) return
+  acting.value = true
   try {
-    await adminApi.approve(row.id)
+    await adminApi.approve(selected.value.id)
     message.success('已通过审核')
     await load()
   } catch (err) {
     message.error((err as Error).message)
+  } finally {
+    acting.value = false
   }
 }
 
-function openReject(row: QualificationItem) {
-  target.value = row
-  reason.value = ''
-  reasonError.value = ''
-  modalOpen.value = true
-}
-
-async function submitReject() {
-  if (!target.value) return
+async function reject() {
+  if (!selected.value) return
   const text = reason.value.trim()
   if (text.length < 10) {
     reasonError.value = '驳回原因不少于 10 个字'
@@ -62,9 +66,8 @@ async function submitReject() {
   }
   submitting.value = true
   try {
-    await adminApi.reject(target.value.id, text)
+    await adminApi.reject(selected.value.id, text)
     message.success('已驳回')
-    modalOpen.value = false
     await load()
   } catch (err) {
     reasonError.value = (err as Error).message
@@ -78,61 +81,113 @@ onMounted(load)
 
 <template>
   <div>
-    <div class="rh-section-title">
-      <h1 style="font-size: 22px; margin: 0">资质审核</h1>
-      <a-space>
-        <a-select
-          v-model:value="status"
-          style="width: 160px"
-          :options="[
-            { value: 'pending', label: '待审核' },
-            { value: 'approved', label: '已通过' },
-            { value: 'rejected', label: '已驳回' },
-            { value: 'all', label: '全部' },
-          ]"
-          @change="load"
-        />
-        <a-button @click="load">刷新</a-button>
-      </a-space>
+    <div class="head">
+      <div><h1>资质审核</h1></div>
+      <div class="right">
+        <select v-model="status" class="select-sm" aria-label="状态筛选" @change="load">
+          <option value="pending">待审核</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">已驳回</option>
+          <option value="all">全部</option>
+        </select>
+        <button class="btn ghost sm" type="button" :disabled="loading" @click="load">刷新</button>
+      </div>
     </div>
 
-    <a-table :columns="columns" :data-source="rows" :loading="loading" row-key="id" :pagination="false">
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'merchant'">
-          <div style="font-weight: 600">{{ record.merchant_name }}</div>
-        </template>
-        <template v-else-if="column.key === 'legal'">{{ record.legal_name || '—' }}</template>
-        <template v-else-if="column.key === 'files'">
-          <a-image-preview-group>
-            <a-image
-              v-for="f in record.files"
-              :key="f.id"
-              :src="f.url"
-              :width="42"
-              :height="32"
-              style="object-fit: cover; margin-right: 4px"
-            />
-          </a-image-preview-group>
-          <span v-if="!record.files?.length" class="rh-muted">无</span>
-        </template>
-        <template v-else-if="column.key === 'submitted'">{{ dateTime(record.submitted_at) }}</template>
-        <template v-else-if="column.key === 'status'">
-          <a-tag :color="QUALIFICATION_STATUS[record.status]?.color">{{ QUALIFICATION_STATUS[record.status]?.text ?? record.status }}</a-tag>
-        </template>
-        <template v-else-if="column.key === 'action'">
-          <a-space v-if="record.status === 'pending'">
-            <a-button size="small" type="primary" @click="approve(record as QualificationItem)">通过</a-button>
-            <a-button size="small" danger @click="openReject(record as QualificationItem)">驳回</a-button>
-          </a-space>
-          <span v-else class="rh-muted">{{ record.reject_reason ?? '—' }}</span>
-        </template>
-      </template>
-    </a-table>
+    <p v-if="loading && !rows.length" class="loading-hint">正在加载…</p>
+    <p v-else-if="!rows.length" class="empty">当前没有{{ status === 'all' ? '' : QUALIFICATION_STATUS[status]?.text ?? '' }}记录</p>
 
-    <a-modal v-model:open="modalOpen" title="驳回资质" ok-text="确认驳回" cancel-text="取消" :confirm-loading="submitting" @ok="submitReject">
-      <p class="rh-muted">驳回原因会展示给商家，请写清需要补充或修改的材料（不少于 10 个字）。</p>
-      <a-textarea v-model:value="reason" :rows="4" :maxlength="255" show-count placeholder="例如：营业执照照片不清晰，请重新上传彩色原件" />
-      <div v-if="reasonError" style="color: #e5484d; margin-top: 8px; font-size: 13px">{{ reasonError }}</div>
-    </a-modal>
+    <div v-else class="split">
+      <div>
+        <table class="table">
+          <thead>
+            <tr><th>商家</th><th>提交时间</th><th>材料</th><th>状态</th></tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in rows"
+              :key="row.id"
+              :aria-current="row.id === selectedId ? 'true' : undefined"
+              :style="row.id === selectedId ? { background: 'var(--fill)', cursor: 'pointer' } : { cursor: 'pointer' }"
+              @click="selectedId = row.id"
+            >
+              <td>
+                <p>{{ row.merchant_name }}</p>
+                <p class="m">{{ row.legal_name || '—' }}</p>
+              </td>
+              <td>{{ row.submitted_at ? dateTime(row.submitted_at) : '—' }}</td>
+              <td>{{ row.files?.length ?? 0 }} 张</td>
+              <td>
+                <span :class="STATUS_TAG[row.status] ?? 'tag'">{{ QUALIFICATION_STATUS[row.status]?.text ?? row.status }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="review-panel">
+        <template v-if="selected">
+          <h2>{{ selected.merchant_name }}</h2>
+          <p class="muted-line">
+            {{ selected.legal_name || '未填写主体名称' }} · 提交于
+            {{ selected.submitted_at ? dateTime(selected.submitted_at) : '—' }}
+          </p>
+
+          <div v-if="selected.files?.length" class="shots">
+            <a
+              v-for="f in selected.files"
+              :key="f.id"
+              :href="f.url"
+              target="_blank"
+              rel="noopener"
+            >
+              <img :src="f.url" :alt="f.file_name ?? '资质材料'" />
+            </a>
+          </div>
+          <p v-else class="hint">该记录没有材料。</p>
+
+          <div class="actions" style="display: flex; gap: 8px; margin-top: 12px">
+            <button
+              v-if="selected.status === 'pending'"
+              class="btn"
+              type="button"
+              style="flex: 1"
+              :disabled="acting"
+              @click="approve"
+            >
+              {{ acting ? '处理中…' : '通过并解锁上架' }}
+            </button>
+            <button
+              v-if="selected.status === 'pending'"
+              class="btn ghost"
+              type="button"
+              style="flex: 1"
+              :disabled="submitting"
+              @click="reject"
+            >
+              {{ submitting ? '提交中…' : '驳回' }}
+            </button>
+          </div>
+
+          <template v-if="selected.status === 'pending'">
+            <div class="field" style="margin-top: 14px">
+              <label for="reason">驳回原因（通过时可不填）</label>
+              <textarea id="reason" v-model="reason" rows="3" placeholder="不少于 10 字，说明需要补正的材料" />
+            </div>
+            <p v-if="reasonError" class="hint" style="color: var(--danger)">{{ reasonError }}</p>
+          </template>
+
+          <p v-else-if="selected.reject_reason" class="alert" style="margin-top: 14px">
+            驳回原因：{{ selected.reject_reason }}
+          </p>
+
+          <p class="hint">
+            通过后商家立即可以上架房源，并会收到一条站内通知。
+            <template v-if="selected.reviewed_at">审核时间：{{ dateTime(selected.reviewed_at) }}。</template>
+          </p>
+        </template>
+        <p v-else class="hint">在左侧选择一条记录查看材料。</p>
+      </aside>
+    </div>
   </div>
 </template>

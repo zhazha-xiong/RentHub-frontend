@@ -1,46 +1,67 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ListingCard } from '@/api/types'
 import { money } from '@/utils/format'
 
-defineProps<{ listing: ListingCard; active?: boolean }>()
+/**
+ * 房源卡片 —— 结构与 class 完全沿用 v2 的 .card（首页、收藏页共用）
+ *
+ * 封面比例用后端给的 cover_w / cover_h（v2 是手工写 --ar，现在由假后端按真实照片给出），
+ * 所以瀑布流每一列都是图片的原始比例，不会因为写死比例而出现裁切或布局跳动。
+ */
+const props = withDefaults(
+  defineProps<{
+    listing: ListingCard
+    favorited?: boolean
+    /** 传 false 可隐藏收藏按钮（如只读列表） */
+    showFav?: boolean
+  }>(),
+  { favorited: false, showFav: true },
+)
+
+const emit = defineEmits<{ (e: 'toggle-favorite', item: ListingCard): void }>()
+
+const aspect = computed(() => `${props.listing.cover_w ?? 4} / ${props.listing.cover_h ?? 3}`)
+
+/** 第二行顺序与 v2 一致：区域 · 面积 · 朝向 · 楼层 · 装修 */
+const meta = computed(() =>
+  [
+    props.listing.region_name,
+    `${props.listing.area}㎡`,
+    props.listing.orientation_name,
+    props.listing.floor_desc,
+    props.listing.decoration_name,
+  ]
+    .filter(Boolean)
+    .join(' · '),
+)
 </script>
 
 <template>
-  <router-link :to="`/listings/${listing.id}`" style="display: block; color: inherit">
-    <a-card
-      hoverable
-      :body-style="{ padding: '12px 14px 14px' }"
-      :style="{ borderColor: active ? 'var(--rh-primary)' : undefined, overflow: 'hidden' }"
-    >
-      <template #cover>
-        <div style="aspect-ratio: 4 / 3; background: var(--rh-bg); overflow: hidden">
-          <img
-            :src="listing.cover"
-            :alt="listing.title"
-            loading="lazy"
-            style="width: 100%; height: 100%; object-fit: cover; display: block"
-          />
-        </div>
-      </template>
-
-      <div style="font-size: 15px; font-weight: 600; line-height: 1.4; margin-bottom: 6px">
-        {{ listing.title }}
-      </div>
-      <div class="rh-muted" style="margin-bottom: 8px">
-        {{ listing.region_name }}<template v-if="listing.community"> · {{ listing.community }}</template> ·
-        {{ listing.layout }} · {{ listing.area }}㎡
-      </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 22px">
-        <a-tag v-for="tag in listing.tags.slice(0, 3)" :key="tag" :bordered="false" style="margin: 0; font-size: 12px">
-          {{ tag }}
-        </a-tag>
-      </div>
-      <div style="display: flex; align-items: baseline; justify-content: space-between">
-        <span class="rh-price" style="font-size: 18px">
-          {{ money(listing.rent) }}<span style="font-size: 12px; font-weight: 400; color: var(--rh-text-2)"> 元/月</span>
-        </span>
-        <span class="rh-muted">{{ listing.floor_desc }}</span>
-      </div>
-    </a-card>
+  <router-link class="card" :to="`/listings/${listing.id}`">
+    <div class="thumb" :style="{ '--ar': aspect }">
+      <img :src="listing.cover" :alt="`${listing.title} 实拍图`" loading="lazy" />
+      <button
+        v-if="showFav"
+        class="fav"
+        type="button"
+        :aria-label="favorited ? `取消收藏 ${listing.title}` : `收藏 ${listing.title}`"
+        :class="{ 'is-on': favorited }"
+        @click.prevent.stop="emit('toggle-favorite', listing)"
+      >
+        {{ favorited ? '已收藏' : '收藏' }}
+      </button>
+    </div>
+    <div class="card-body">
+      <h3 class="card-title">{{ listing.title }}</h3>
+      <p class="card-meta">{{ meta }}</p>
+      <p v-if="listing.tags.length" class="card-tags">
+        <span v-for="tag in listing.tags" :key="tag" class="tag">{{ tag }}</span>
+      </p>
+      <p class="card-foot">
+        <span class="when">{{ listing.published_label ?? '待上架' }}</span>
+        <span class="price"><b>{{ money(listing.rent) }}</b> 元/月</span>
+      </p>
+    </div>
   </router-link>
 </template>

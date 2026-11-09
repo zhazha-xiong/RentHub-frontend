@@ -16,6 +16,11 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL: 'http://127.0.0.1:4173',
+    /* CI 里优先用 GitHub runner 预装的 Google Chrome：省掉每次下载 Chromium 的 21s
+       （其中 10.8s 是 apt 装系统库，缓存不了；浏览器二进制只有 9.2s，不值得为它缓存 270MB）。
+       workflow 会在找不到 google-chrome 时回退安装 Playwright Chromium，并把 PW_CHANNEL 留空，
+       所以这里用环境变量切换，本地默认仍用 Playwright 自带的 chromium。 */
+    channel: (process.env.PW_CHANNEL as 'chrome' | undefined) || undefined,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: process.env.CI ? 'retain-on-failure' : 'off',

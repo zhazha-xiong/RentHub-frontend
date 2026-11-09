@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 import { ApiError } from '@/api/http'
+import { AUTH_ART } from '@/utils/photos'
 import type { Role } from '@/api/types'
 
 const auth = useAuthStore()
@@ -61,78 +62,60 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="auth-wrap">
-    <div class="auth-panel">
-      <router-link to="/" class="auth-brand">栖居<span>RENTHUB</span></router-link>
-      <h1>在大连，找到下一年住的地方</h1>
-      <div class="rh-muted" style="margin-bottom: 18px">登录后可收藏房源、下单与查看订单</div>
-
-      <a-tabs v-model:active-key="form.role" centered @change="(k) => fillDemo(k as Role)">
-        <a-tab-pane v-for="r in ROLE_TABS" :key="r.key" :tab="r.tab" />
-      </a-tabs>
-
-      <a-alert v-if="errorText" type="error" :message="errorText" show-icon style="margin-bottom: 14px" />
-
-      <a-form layout="vertical" :model="form" @submit.prevent="submit">
-        <a-form-item label="账号">
-          <a-input v-model:value="form.account" size="large" autocomplete="username" placeholder="4-20 位字母或数字" />
-        </a-form-item>
-        <a-form-item label="密码">
-          <a-input-password v-model:value="form.password" size="large" autocomplete="current-password" placeholder="至少 8 位，含字母与数字" />
-        </a-form-item>
-        <a-form-item>
-          <a-checkbox v-model:checked="form.remember">7 天内记住我</a-checkbox>
-        </a-form-item>
-        <a-button type="primary" size="large" block html-type="submit" :loading="loading">登录</a-button>
-      </a-form>
-
-      <div style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center">
-        <span class="rh-muted">还没有账号？<router-link to="/register">立即注册</router-link></span>
-        <a-dropdown>
-          <a class="rh-muted">演示账号 ▾</a>
-          <template #overlay>
-            <a-menu>
-              <a-menu-item v-for="r in ROLE_TABS" :key="r.key" @click="fillDemo(r.key)">
-                {{ r.tab }}：{{ r.account }} / renthub123
-              </a-menu-item>
-            </a-menu>
-          </template>
-        </a-dropdown>
+  <!-- 结构与 class 完全沿用 v2 login.html：.auth > .auth-art（左图）+ .auth-main > .auth-box -->
+  <div class="auth">
+    <aside class="auth-art">
+      <img :src="AUTH_ART" alt="房源实拍，演示图片" />
+      <div class="auth-art-in">
+        <router-link class="brand" to="/">栖居<span class="brand-en">RentHub</span></router-link>
+        <p class="tagline">在大连，找到下一年住的地方</p>
       </div>
-    </div>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-box">
+        <h1>登录</h1>
+
+        <div class="role-switch" role="tablist" aria-label="登录入口">
+          <button
+            v-for="r in ROLE_TABS"
+            :key="r.key"
+            type="button"
+            role="tab"
+            :class="{ on: form.role === r.key }"
+            :aria-selected="form.role === r.key"
+            @click="fillDemo(r.key)"
+          >
+            {{ r.tab }}
+          </button>
+        </div>
+
+        <div v-if="errorText" class="alert">{{ errorText }}</div>
+
+        <form class="auth-fields" @submit.prevent="submit">
+          <div class="field">
+            <label for="acct">账号</label>
+            <input id="acct" v-model="form.account" type="text" placeholder="4~20 位字母或数字" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="pwd">密码</label>
+            <input id="pwd" v-model="form.password" type="password" placeholder="8~20 位，含字母与数字" autocomplete="current-password" />
+          </div>
+          <div class="auth-row">
+            <label class="check"><input v-model="form.remember" type="checkbox" /> 7 天内记住我</label>
+            <a href="#" @click.prevent>忘记密码？</a>
+          </div>
+          <button class="btn auth-btn" type="submit" :disabled="loading">{{ loading ? '登录中…' : '登录' }}</button>
+        </form>
+
+        <p class="auth-alt">还没有账号？<router-link to="/register">立即注册</router-link></p>
+        <p class="demo-states">
+          演示账号：<a href="#" @click.prevent="fillDemo('tenant')">租客 xiaofs</a><span>·</span>
+          <a href="#" @click.prevent="fillDemo('merchant')">商家 xingchen</a><span>·</span>
+          <a href="#" @click.prevent="fillDemo('admin')">管理员 guanli</a>
+        </p>
+      </div>
+      <p class="auth-foot">栖居 RentHub · 软件工程综合实训 · 全部数据为教学演示</p>
+    </main>
   </div>
 </template>
-
-<style scoped>
-.auth-wrap {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  background: linear-gradient(160deg, #f0f6ff 0%, #f5f5f5 55%, #fafafa 100%);
-}
-.auth-panel {
-  width: min(440px, 100%);
-  background: #fff;
-  border: 1px solid var(--rh-border);
-  border-radius: 12px;
-  padding: 28px 28px 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-}
-.auth-brand {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--rh-text);
-}
-.auth-brand span {
-  margin-left: 6px;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--rh-primary);
-}
-h1 {
-  font-size: 20px;
-  margin: 18px 0 6px;
-}
-</style>

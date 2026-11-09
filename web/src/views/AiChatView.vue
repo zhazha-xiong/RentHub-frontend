@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { streamChat } from '@/api/sse'
 import { ApiError } from '@/api/http'
 import type { ListingCard } from '@/api/types'
-import ListingCardView from '@/components/ListingCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { money } from '@/utils/format'
 
@@ -30,6 +29,15 @@ const listRef = ref<HTMLElement | null>(null)
 
 const listingId = route.query.listing_id ? Number(route.query.listing_id) : undefined
 
+/** 右栏「本次候选」：取最近一条带卡片的助手消息（与 v2 的 .side 一致） */
+const candidates = computed<ListingCard[]>(() => {
+  for (let i = bubbles.value.length - 1; i >= 0; i--) {
+    const cards = bubbles.value[i].cards
+    if (cards?.length) return cards
+  }
+  return []
+})
+
 const SUGGESTIONS = [
   '沙河口 两室 3000 以内 有电梯',
   '高新园区 合租 1500 以内',
@@ -37,9 +45,10 @@ const SUGGESTIONS = [
   '中山区 三室 带车位',
 ]
 
+/** v2 的对话是整页流（.chat min-height 640），所以滚 window，而不是给内部容器加滚动条 */
 function scrollToBottom() {
   void nextTick(() => {
-    listRef.value?.scrollTo({ top: listRef.value.scrollHeight, behavior: 'smooth' })
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   })
 }
 
@@ -118,114 +127,86 @@ onMounted(() => {
 </script>
 
 <template>
-  <a-row :gutter="20">
-    <a-col :xs="24" :md="16">
-      <a-card :body-style="{ padding: 0 }">
-        <template #title>AI 找房</template>
-        <template #extra>
-          <a-tag v-if="sessionId" color="blue">会话 #{{ sessionId }}</a-tag>
-        </template>
+  <!-- 结构与 class 完全沿用 v2 agent.html：.head / .chatwrap(.chat + .side) / .thread / .msg / .composer -->
+  <div>
+    <p class="crumbs"><router-link to="/">找房</router-link><span>/</span>AI 找房</p>
+    <div class="head">
+      <div>
+        <h1>AI 找房</h1>
+      </div>
+      <div class="right">
+        <router-link class="btn ghost" to="/" style="display: inline-flex; align-items: center; text-decoration: none">回到列表</router-link>
+      </div>
+    </div>
 
-        <div ref="listRef" class="chat-body">
-          <div v-for="(b, i) in bubbles" :key="i" class="chat-row" :class="b.role">
-            <a-avatar :style="{ background: b.role === 'user' ? '#8c8c8c' : 'var(--rh-primary)', flex: '0 0 auto' }">
-              {{ b.role === 'user' ? auth.initial : 'AI' }}
-            </a-avatar>
-            <div class="chat-main">
-              <div class="chat-bubble" :class="b.role">
-                {{ b.text }}<span v-if="b.streaming" class="caret">▍</span>
-              </div>
-              <div v-if="b.conditions && Object.keys(b.conditions).length" class="rh-muted" style="margin-top: 6px">
+    <div class="chatwrap">
+      <div class="chat">
+        <div ref="listRef" class="thread">
+          <div v-for="(b, i) in bubbles" :key="i" class="msg" :class="b.role">
+            <p class="who">
+              <template v-if="b.role === 'user'"><span class="ava-u">{{ auth.initial || '我' }}</span></template>
+              <template v-else><span class="ava-a">助</span>找房助手</template>
+            </p>
+            <div class="bubble">
+              {{ b.text }}<span v-if="b.streaming" aria-hidden="true">▍</span>
+
+              <p v-if="b.conditions && Object.keys(b.conditions).length" class="hint">
                 已识别条件：{{ conditionText(b.conditions) }}
+              </p>
+
+              <div v-if="b.options" class="q">
+                <button v-for="opt in b.options.items" :key="opt.value" type="button" @click="send(opt.value)">
+                  {{ opt.label }}
+                </button>
+                <button type="button" class="skip" @click="send('跳过这一步')">跳过</button>
               </div>
-              <div v-if="b.options" style="margin-top: 8px">
-                <div class="rh-muted">选择{{ b.options.group }}：</div>
-                <a-space wrap style="margin-top: 6px">
-                  <a-button v-for="opt in b.options.items" :key="opt.value" size="small" @click="send(opt.value)">
-                    {{ opt.label }}
-                  </a-button>
-                </a-space>
+
+              <div v-if="b.cards?.length" class="mini">
+                <router-link v-for="card in b.cards.slice(0, 3)" :key="card.id" :to="`/listings/${card.id}`">
+                  <img :src="card.cover" :alt="card.title" loading="lazy" />
+                  <div class="b">
+                    <p class="t">{{ card.title }}</p>
+                    <p class="p"><b>{{ money(card.rent) }}</b> 元/月</p>
+                  </div>
+                </router-link>
               </div>
-              <div v-if="b.cards?.length" class="rh-grid" style="margin-top: 10px">
-                <ListingCardView v-for="card in b.cards" :key="card.id" :listing="card" />
-              </div>
+            </div>
+
+            <!-- 首条助手消息带 4 个建议问法（v2 的点选按钮就是 .q） -->
+            <div v-if="i === 0 && !listingId" class="q">
+              <button v-for="s in SUGGESTIONS" :key="s" type="button" @click="send(s)">{{ s }}</button>
             </div>
           </div>
         </div>
 
-        <div class="chat-input">
-          <a-textarea
-            v-model:value="input"
-            :auto-size="{ minRows: 1, maxRows: 4 }"
-            placeholder="例如：沙河口 两室 3000 以内 有电梯（Enter 发送，Shift+Enter 换行）"
-            @press-enter="send()"
+        <form class="composer" @submit.prevent="send()">
+          <textarea
+            v-model="input"
+            aria-label="继续提问"
+            placeholder="继续问，例如「这两套哪个更划算」"
+            @keydown.enter.exact.prevent="send()"
           />
-          <a-button type="primary" :loading="sending" @click="send()">发送</a-button>
-        </div>
-      </a-card>
-    </a-col>
+          <button class="btn send" type="submit" :disabled="sending">{{ sending ? '回答中…' : '发送' }}</button>
+        </form>
+        <p class="hint">Enter 发送 · Shift + Enter 换行 · 回答基于房源结构化字段与平台统计</p>
+      </div>
 
-    <a-col :xs="24" :md="8">
-      <a-card title="可以这样问">
-        <a-space direction="vertical" style="width: 100%">
-          <a-button v-for="s in SUGGESTIONS" :key="s" block style="text-align: left" @click="send(s)">{{ s }}</a-button>
-        </a-space>
-        <a-divider />
-        <div class="rh-muted">
+      <aside class="side">
+        <div class="hd"><b>本次候选</b><span>{{ candidates.length }} 套</span></div>
+        <div v-for="c in candidates" :key="c.id" class="result">
+          <img :src="c.cover" :alt="c.title" loading="lazy" />
+          <div>
+            <p class="t">{{ c.title }}</p>
+            <p class="m">{{ c.area }}㎡ · {{ c.orientation_name || '—' }} · {{ c.floor_desc }}</p>
+            <p class="p"><b>{{ money(c.rent) }}</b> 元/月</p>
+          </div>
+        </div>
+        <p v-if="!candidates.length" class="hint">还没有候选，先告诉助手你的条件。</p>
+        <p class="hint" style="margin-top: 12px">
           回答来自规则式条件抽取 + 房源检索（假后端实现）。真后端由大模型按 SSE 返回同样的
           <code>delta / conditions / options / cards / done</code> 事件，前端无需改动。
-        </div>
-      </a-card>
-    </a-col>
-  </a-row>
+        </p>
+      </aside>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-.chat-body {
-  height: 520px;
-  overflow-y: auto;
-  padding: 16px;
-  background: #fafafa;
-}
-.chat-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-.chat-row.user {
-  flex-direction: row-reverse;
-}
-.chat-main {
-  max-width: 82%;
-}
-.chat-bubble {
-  background: #fff;
-  border: 1px solid var(--rh-border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.chat-bubble.user {
-  background: var(--rh-primary);
-  border-color: var(--rh-primary);
-  color: #fff;
-}
-.caret {
-  animation: blink 1s step-end infinite;
-}
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-.chat-input {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--rh-border);
-  background: #fff;
-}
-</style>

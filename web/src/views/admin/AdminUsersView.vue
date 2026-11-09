@@ -5,6 +5,10 @@ import { adminApi } from '@/api'
 import type { User } from '@/api/types'
 import { dateOnly } from '@/utils/format'
 
+/**
+ * 管理员 · 用户管理 —— 与房源处置/资质审核同一套 v2 骨架：
+ *   .head → .toolbar → table.table
+ */
 type Row = User & { created_at?: string }
 
 const rows = ref<Row[]>([])
@@ -18,21 +22,12 @@ const reason = ref('')
 const reasonError = ref('')
 const submitting = ref(false)
 
-const columns = [
-  { title: '账号', dataIndex: 'account', key: 'account', width: 140 },
-  { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
-  { title: '角色', key: 'role', width: 110 },
-  { title: '状态', key: 'status', width: 110 },
-  { title: '注册时间', key: 'created', width: 140 },
-  { title: '操作', key: 'action', width: 130 },
-]
-
 const ROLE_LABEL: Record<string, string> = { tenant: '租客', merchant: '商家', admin: '管理员' }
 
 async function load() {
   loading.value = true
   try {
-    const data = await adminApi.users({ keyword: keyword.value || undefined })
+    const data = await adminApi.users({ keyword: keyword.value.trim() || undefined })
     rows.value = data.items as Row[]
   } catch (err) {
     message.error((err as Error).message)
@@ -46,6 +41,7 @@ function open(row: Row, m: 'disable' | 'enable') {
   mode.value = m
   reason.value = ''
   reasonError.value = ''
+  /* 启用不需要填原因，直接执行；禁用要填原因，走弹窗 */
   if (m === 'enable') {
     void submit()
     return
@@ -83,32 +79,63 @@ onMounted(load)
 
 <template>
   <div>
-    <div class="rh-section-title">
-      <h1 style="font-size: 22px; margin: 0">用户管理</h1>
-      <a-space>
-        <a-input v-model:value="keyword" allow-clear placeholder="账号 / 昵称" style="width: 200px" @press-enter="load" />
-        <a-button @click="load">查询</a-button>
-      </a-space>
+    <div class="head">
+      <div><h1>用户管理</h1></div>
+      <div class="right">
+        <button class="btn ghost sm" type="button" :disabled="loading" @click="load">刷新</button>
+      </div>
     </div>
 
-    <a-table :columns="columns" :data-source="rows" :loading="loading" row-key="id" :pagination="false">
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'role'">{{ ROLE_LABEL[record.role] ?? record.role }}</template>
-        <template v-else-if="column.key === 'status'">
-          <a-tag :color="record.status === 'active' ? 'success' : 'error'">{{ record.status === 'active' ? '正常' : '已禁用' }}</a-tag>
-        </template>
-        <template v-else-if="column.key === 'created'">{{ dateOnly(record.created_at) }}</template>
-        <template v-else-if="column.key === 'action'">
-          <a-button v-if="record.status === 'active'" size="small" danger @click="open(record as Row, 'disable')">禁用</a-button>
-          <a-button v-else size="small" @click="open(record as Row, 'enable')">启用</a-button>
-        </template>
-      </template>
-    </a-table>
+    <div class="toolbar">
+      <input
+        v-model="keyword"
+        type="search"
+        placeholder="搜索账号或昵称"
+        aria-label="搜索用户"
+        @keydown.enter.prevent="load()"
+        @blur="load()"
+      />
+      <span class="grow" />
+      <span class="note">{{ rows.length }} 个账号</span>
+    </div>
 
-    <a-modal v-model:open="modalOpen" title="禁用账号" ok-text="确认禁用" cancel-text="取消" :confirm-loading="submitting" @ok="submit">
-      <p class="rh-muted">禁用后该账号无法登录，其名下在架房源会同步下架。</p>
-      <a-textarea v-model:value="reason" :rows="3" :maxlength="255" show-count placeholder="例如：多次发布虚假房源信息" />
-      <div v-if="reasonError" style="color: #e5484d; margin-top: 8px; font-size: 13px">{{ reasonError }}</div>
+    <p v-if="loading && !rows.length" class="loading-hint">正在加载…</p>
+    <p v-else-if="!rows.length" class="empty">没有符合条件的账号</p>
+
+    <table v-else class="table">
+      <thead>
+        <tr><th>账号</th><th>昵称</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in rows" :key="row.id">
+          <td>{{ row.account }}</td>
+          <td>{{ row.nickname }}</td>
+          <td>{{ ROLE_LABEL[row.role] ?? row.role }}</td>
+          <td>
+            <span :class="row.status === 'active' ? 'tag ok' : 'tag plain'">{{ row.status === 'active' ? '正常' : '已禁用' }}</span>
+          </td>
+          <td>{{ row.created_at ? dateOnly(row.created_at) : '—' }}</td>
+          <td>
+            <button v-if="row.status === 'active'" class="btn ghost sm" type="button" @click="open(row, 'disable')">禁用</button>
+            <button v-else class="btn ghost sm" type="button" @click="open(row, 'enable')">启用</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="hint">禁用后该账号无法登录，其名下在架房源会同步下架。</p>
+
+    <a-modal
+      v-model:open="modalOpen"
+      title="禁用账号"
+      ok-text="确认禁用"
+      cancel-text="取消"
+      :confirm-loading="submitting"
+      @ok="submit"
+    >
+      <p class="hint">禁用后该账号无法登录，其名下在架房源会同步下架。</p>
+      <textarea v-model="reason"  rows="3"  maxlength="255"  placeholder="例如：多次发布虚假房源信息" />
+      <div v-if="reasonError" style="color: var(--danger); margin-top: 8px; font-size: 13px">{{ reasonError }}</div>
     </a-modal>
   </div>
 </template>

@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMetaStore } from '@/stores/meta'
 import type { ListingCard, ListingQuery, Sort } from '@/api/types'
 import { money } from '@/utils/format'
+import ListingCardView from '@/components/ListingCard.vue'
 
 /**
  * 找房首页 —— 结构和 class 完全沿用旧版 index.html：
@@ -28,14 +29,24 @@ const filters = reactive({
   rooms: undefined as number | undefined,
   rentType: undefined as 'whole' | 'shared' | undefined,
   orientation: undefined as string | undefined,
+  houseType: undefined as string | undefined,
   hasElevator: false,
   nearMetro: false,
   sort: 'composite' as Sort,
 })
 
+/* 手填租金（元）：与上面的区间按钮互斥，v2 的「最低 – 最高 元」就是走这里 */
+const rentMinText = ref('')
+const rentMaxText = ref('')
+
+const rentRangeDirty = computed(() => rentMinText.value.trim() !== '' || rentMaxText.value.trim() !== '')
+
 const items = ref<ListingCard[]>([])
 const cursor = ref<string | null>(null)
 const total = ref(0)
+/** 全站在架数与今日新上：由后端 stats 给（v2 右侧那行 note） */
+const onlineTotal = ref(0)
+const todayNew = ref(0)
 const loading = ref(false)
 const loaded = ref(false)
 const favorited = ref<Set<number>>(new Set())
@@ -47,7 +58,8 @@ let reloadTimer: ReturnType<typeof setTimeout> | null = null
 const rentOptions = computed(() =>
   (meta.filters?.rent_buckets ?? []).map((b, i) => ({
     i,
-    label: b.max == null ? `${money(b.min)} 元以上` : `${money(b.min)}–${money(b.max)} 元`,
+    /* 文案对齐 v2：「500 元以下」「500–800 元」「5000 元以上」 */
+    label: b.max == null ? `${money(b.min)} 元以上` : b.min === 0 ? `${money(b.max)} 元以下` : `${money(b.min)}–${money(b.max)} 元`,
   })),
 )
 const roomOptions = [
@@ -64,18 +76,18 @@ const sorts: { value: Sort; label: string }[] = [
   { value: 'price_desc', label: '价格 ↓' },
 ]
 
-/** 瀑布流的错落感：不同比例（旧版靠图片真实比例，这里按 id 轮换） */
-function cardAspect(id: number): string {
-  const all = ['4 / 3', '3 / 2', '1 / 1', '4 / 5']
-  return all[id % all.length]
-}
-
 function buildQuery(next?: string): ListingQuery {
   const q: ListingQuery = { sort: filters.sort, limit: 12 }
   if (filters.keyword.trim()) q.keyword = filters.keyword.trim()
   if (filters.region) q.region = filters.region
   if (filters.metro) q.metro_line = filters.metro
-  if (filters.rentBucket !== undefined) {
+  /* 手填区间优先于区间按钮（两者互斥，见 pickRentBucket / clearRent） */
+  if (rentRangeDirty.value) {
+    const min = Number(rentMinText.value)
+    const max = Number(rentMaxText.value)
+    if (rentMinText.value.trim() && !Number.isNaN(min)) q.rent_min = Math.round(min * 100)
+    if (rentMaxText.value.trim() && !Number.isNaN(max)) q.rent_max = Math.round(max * 100)
+  } else if (filters.rentBucket !== undefined) {
     const bucket = meta.filters?.rent_buckets[filters.rentBucket]
     if (bucket) {
       q.rent_min = bucket.min
@@ -84,6 +96,7 @@ function buildQuery(next?: string): ListingQuery {
   }
   if (filters.rooms) q.rooms = String(filters.rooms)
   if (filters.rentType) q.rent_type = filters.rentType
+  if (filters.houseType) q.house_type = filters.houseType
   if (filters.orientation) q.orientation = filters.orientation
   if (filters.hasElevator) q.has_elevator = true
   if (filters.nearMetro) q.near_metro = true
@@ -100,6 +113,9 @@ async function load(reset = true) {
     cursor.value = data.next_cursor
     if (reset) {
       total.value = (data as { total?: number }).total ?? data.items.length
+      const stats = (data as { stats?: { total?: number; today_new?: number } }).stats
+      onlineTotal.value = stats?.total ?? total.value
+      todayNew.value = stats?.today_new ?? 0
       loaded.value = true
       window.scrollTo({ top: 0 })
     }
@@ -124,9 +140,12 @@ watch(
     filters.rooms,
     filters.rentType,
     filters.orientation,
+    filters.houseType,
     filters.hasElevator,
     filters.nearMetro,
     filters.sort,
+    rentMinText.value,
+    rentMaxText.value,
   ],
   scheduleReload,
   { deep: true },
@@ -151,6 +170,19 @@ function pickMetro(code?: string) {
 function pickRoom(v?: number) {
   filters.rooms = filters.rooms === v ? undefined : v
 }
+/** 区间按钮与手填租金互斥：点按钮就清空手填，反之手填补上就清空按钮 */
+function pickRentBucket(i: number) {
+  filters.rentBucket = filters.rentBucket === i ? undefined : i
+  if (filters.rentBucket !== undefined) {
+    rentMinText.value = ''
+    rentMaxText.value = ''
+  }
+}
+function clearRent() {
+  filters.rentBucket = undefined
+  rentMinText.value = ''
+  rentMaxText.value = ''
+}
 function resetFilters() {
   filters.keyword = ''
   filters.region = undefined
@@ -159,9 +191,12 @@ function resetFilters() {
   filters.rooms = undefined
   filters.rentType = undefined
   filters.orientation = undefined
+  filters.houseType = undefined
   filters.hasElevator = false
   filters.nearMetro = false
   filters.sort = 'composite'
+  rentMinText.value = ''
+  rentMaxText.value = ''
 }
 
 async function toggleFavorite(item: ListingCard) {
@@ -203,19 +238,22 @@ onBeforeUnmount(() => {
 
 <template>
   <div>
+    <h1>大连租房</h1>
+
+    <!-- v2：一句话描述 + 问 AI（回车即按关键词筛选，功能不丢） -->
     <form class="search" role="search" @submit.prevent="scheduleReload">
       <input
         v-model="filters.keyword"
         type="search"
-        placeholder="搜索小区、地址或描述，例如「星海广场」"
-        aria-label="搜索房源"
+        aria-label="用一句话描述你想找的房子"
+        placeholder="说说你想住哪儿，例如「沙河口 两室 3000 以内 有电梯」"
       />
-      <button class="btn" type="submit">搜索</button>
       <router-link class="btn" to="/ai" style="display: inline-flex; align-items: center; text-decoration: none">问 AI</router-link>
     </form>
 
     <section class="filters" aria-label="筛选">
       <div class="frow">
+        <span class="flabel">位置</span>
         <div class="modes" role="tablist" aria-label="位置方式">
           <button class="mode" :class="{ 'is-on': filters.mode === 'region' }" role="tab" :aria-selected="filters.mode === 'region'" @click="filters.mode = 'region'">区域</button>
           <button class="mode" :class="{ 'is-on': filters.mode === 'metro' }" role="tab" :aria-selected="filters.mode === 'metro'" @click="filters.mode = 'metro'">地铁</button>
@@ -247,23 +285,31 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="frow">
+        <span class="flabel">租金</span>
         <div class="fvals">
-          <button class="opt" :class="{ 'is-on': filters.rentBucket === undefined }" @click="filters.rentBucket = undefined">全部租金</button>
+          <button class="opt" :class="{ 'is-on': filters.rentBucket === undefined && !rentRangeDirty }" @click="clearRent">全部</button>
           <button
             v-for="b in rentOptions"
             :key="b.i"
             class="opt"
             :class="{ 'is-on': filters.rentBucket === b.i }"
-            @click="filters.rentBucket = filters.rentBucket === b.i ? undefined : b.i"
+            @click="pickRentBucket(b.i)"
           >
             {{ b.label }}
           </button>
+          <span class="range">
+            <input v-model="rentMinText" type="text" inputmode="numeric" aria-label="最低租金" placeholder="最低" />
+            –
+            <input v-model="rentMaxText" type="text" inputmode="numeric" aria-label="最高租金" placeholder="最高" />
+            元
+          </span>
         </div>
       </div>
 
       <div class="frow">
+        <span class="flabel">房型</span>
         <div class="fvals">
-          <button class="opt" :class="{ 'is-on': filters.rooms === undefined }" @click="filters.rooms = undefined">全部户型</button>
+          <button class="opt" :class="{ 'is-on': filters.rooms === undefined }" @click="filters.rooms = undefined">全部</button>
           <button v-for="r in roomOptions" :key="r.v" class="opt" :class="{ 'is-on': filters.rooms === r.v }" @click="pickRoom(r.v)">
             {{ r.label }}
           </button>
@@ -271,27 +317,27 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="frow">
+        <span class="flabel">类型</span>
         <div class="fvals">
-          <button class="opt" :class="{ 'is-on': !filters.rentType }" @click="filters.rentType = undefined">全部类型</button>
+          <button class="opt" :class="{ 'is-on': !filters.rentType }" @click="filters.rentType = undefined">全部</button>
           <button class="opt" :class="{ 'is-on': filters.rentType === 'whole' }" @click="filters.rentType = filters.rentType === 'whole' ? undefined : 'whole'">整租</button>
           <button class="opt" :class="{ 'is-on': filters.rentType === 'shared' }" @click="filters.rentType = filters.rentType === 'shared' ? undefined : 'shared'">合租/单间</button>
         </div>
       </div>
 
       <div class="frow">
+        <span class="flabel">更多</span>
         <div class="fvals">
-          <button class="opt" :class="{ 'is-on': !filters.orientation }" @click="filters.orientation = undefined">全部朝向</button>
-          <button
-            v-for="o in (meta.filters?.orientations ?? []).slice(0, 6)"
-            :key="o.code"
-            class="opt"
-            :class="{ 'is-on': filters.orientation === o.code }"
-            @click="filters.orientation = filters.orientation === o.code ? undefined : o.code"
-          >
-            {{ o.name }}
-          </button>
-          <button class="opt" :class="{ 'is-on': filters.hasElevator }" @click="filters.hasElevator = !filters.hasElevator">电梯房</button>
-          <button class="opt" :class="{ 'is-on': filters.nearMetro }" @click="filters.nearMetro = !filters.nearMetro">近地铁</button>
+          <select v-model="filters.houseType" class="select-sm" aria-label="房屋类型">
+            <option :value="undefined">房屋类型</option>
+            <option v-for="h in meta.filters?.house_types ?? []" :key="h.code" :value="h.code">{{ h.name }}</option>
+          </select>
+          <select v-model="filters.orientation" class="select-sm" aria-label="朝向">
+            <option :value="undefined">朝向</option>
+            <option v-for="o in meta.filters?.orientations ?? []" :key="o.code" :value="o.code">{{ o.name }}</option>
+          </select>
+          <label class="check"><input v-model="filters.hasElevator" type="checkbox" /> 电梯房</label>
+          <label class="check"><input v-model="filters.nearMetro" type="checkbox" /> 近地铁</label>
           <button class="opt" @click="resetFilters">重置</button>
         </div>
       </div>
@@ -303,36 +349,18 @@ onBeforeUnmount(() => {
           {{ s.label }}
         </button>
       </div>
-      <span class="note">{{ total }} 套在架</span>
+      <p class="note">{{ onlineTotal }} 套在架 · 今日新上 {{ todayNew }} 套</p>
     </div>
 
     <section class="masonry" aria-label="房源列表">
       <template v-if="loaded">
-        <router-link v-for="item in items" :key="item.id" class="card" :to="`/listings/${item.id}`">
-          <div class="thumb" :style="{ aspectRatio: cardAspect(item.id) }">
-            <img :src="item.cover" :alt="`${item.title} 实拍图`" loading="lazy" />
-            <button
-              class="fav"
-              type="button"
-              :aria-label="favorited.has(item.id) ? '取消收藏' : '收藏'"
-              :class="{ 'is-on': favorited.has(item.id) }"
-              @click.prevent.stop="toggleFavorite(item)"
-            >
-              {{ favorited.has(item.id) ? '♥' : '♡' }}
-            </button>
-          </div>
-          <div class="card-body">
-            <h3 class="card-title">{{ item.title }}</h3>
-            <p class="card-meta">{{ item.region_name }} · {{ item.layout }} · {{ item.area }}㎡ · {{ item.floor_desc }}</p>
-            <p class="card-tags">
-              <span v-for="tag in item.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
-            </p>
-            <div class="card-foot">
-              <span class="price"><b>{{ money(item.rent) }}</b> 元/月</span>
-              <span class="when">可租</span>
-            </div>
-          </div>
-        </router-link>
+        <ListingCardView
+          v-for="item in items"
+          :key="item.id"
+          :listing="item"
+          :favorited="favorited.has(item.id)"
+          @toggle-favorite="toggleFavorite"
+        />
       </template>
 
       <template v-else>

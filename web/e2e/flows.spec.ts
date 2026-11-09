@@ -93,7 +93,6 @@ test('详情页：旧版图库 / 设施两栏 / 户型 spec / 右侧固定价格
   await expect(page.getByRole('heading', { name: '房源描述' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '位置与交通' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '相关推荐' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'AI 参考价' })).toBeVisible()
 })
 
 /* ------------------------------------------------------------------ 租客 */
@@ -130,7 +129,8 @@ test('租客收藏：收藏列表渲染', async ({ page, request }) => {
 test('租客通知：列表渲染', async ({ page, request }) => {
   await openAs(page, request, 'tenant', '/notifications')
   await expect(page.getByRole('heading', { name: /通知中心/ })).toBeVisible()
-  await expect(page.locator('.ant-list-item').first()).toBeVisible()
+  /* 通知列表已按 v2 的 messages.html 重写（.note），不再用 antd List */
+  await expect(page.locator('.note').first()).toBeVisible()
 })
 
 /* ------------------------------------------------------------------ 商家 */
@@ -181,5 +181,5 @@ test('越权：租客打开商家端被守卫送回首页', async ({ page, reque
 test('越权：未登录打开订单页跳登录并带回跳参数', async ({ page }) => {
   await page.goto('/orders')
   await expect(page).toHaveURL(/\/login\?redirect=/)
-  await expect(page.getByPlaceholder('4-20 位字母或数字')).toBeVisible()
+  await expect(page.getByPlaceholder('4~20 位字母或数字')).toBeVisible()
 })

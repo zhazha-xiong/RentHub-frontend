@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 import { ApiError } from '@/api/http'
+import { AUTH_ART } from '@/utils/photos'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -49,73 +50,54 @@ async function submit() {
 </script>
 
 <template>
-  <div class="auth-wrap">
-    <div class="auth-panel">
-      <router-link to="/" class="auth-brand">栖居<span>RENTHUB</span></router-link>
-      <h1>注册账号</h1>
-      <div class="rh-muted" style="margin-bottom: 18px">商家注册后需要先提交资质，通过审核才能上架房源</div>
-
-      <a-alert v-if="errorText" type="error" :message="errorText" show-icon style="margin-bottom: 14px" />
-
-      <a-form layout="vertical" :model="form" @submit.prevent="submit">
-        <a-form-item label="注册身份">
-          <a-radio-group v-model:value="form.role" button-style="solid">
-            <a-radio-button value="tenant">租客</a-radio-button>
-            <a-radio-button value="merchant">商家</a-radio-button>
-          </a-radio-group>
-        </a-form-item>
-        <a-form-item label="账号" :validate-status="fieldErrors.account ? 'error' : undefined" :help="fieldErrors.account">
-          <a-input v-model:value="form.account" size="large" placeholder="4-20 位字母或数字" />
-        </a-form-item>
-        <a-form-item label="密码" :validate-status="fieldErrors.password ? 'error' : undefined" :help="fieldErrors.password">
-          <a-input-password v-model:value="form.password" size="large" placeholder="8-20 位，含字母与数字" />
-        </a-form-item>
-        <a-form-item label="确认密码" :validate-status="fieldErrors.confirm ? 'error' : undefined" :help="fieldErrors.confirm">
-          <a-input-password v-model:value="form.confirm" size="large" />
-        </a-form-item>
-        <a-form-item label="昵称（选填，不填自动生成）">
-          <a-input v-model:value="form.nickname" size="large" :maxlength="32" />
-        </a-form-item>
-        <a-button type="primary" size="large" block html-type="submit" :loading="loading">注册并登录</a-button>
-      </a-form>
-
-      <div style="margin-top: 14px" class="rh-muted">
-        已有账号？<router-link to="/login">去登录</router-link>
+  <!-- 结构与 class 完全沿用 v2 register.html -->
+  <div class="auth">
+    <aside class="auth-art">
+      <img :src="AUTH_ART" alt="房源实拍，演示图片" />
+      <div class="auth-art-in">
+        <router-link class="brand" to="/">栖居<span class="brand-en">RentHub</span></router-link>
+        <p class="tagline">在大连，找到下一年住的地方</p>
       </div>
-    </div>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-box">
+        <h1>注册</h1>
+
+        <div class="role-switch two" role="tablist" aria-label="注册身份">
+          <button type="button" role="tab" :class="{ on: form.role === 'tenant' }" :aria-selected="form.role === 'tenant'" @click="form.role = 'tenant'">租客</button>
+          <button type="button" role="tab" :class="{ on: form.role === 'merchant' }" :aria-selected="form.role === 'merchant'" @click="form.role = 'merchant'">商家</button>
+        </div>
+
+        <div v-if="errorText" class="alert">{{ errorText }}</div>
+
+        <form class="auth-fields" @submit.prevent="submit">
+          <div class="field">
+            <label for="acct2">账号</label>
+            <input id="acct2" v-model="form.account" type="text" placeholder="4~20 位字母或数字" autocomplete="username" />
+            <p v-if="fieldErrors.account" class="hint" style="color: var(--danger)">{{ fieldErrors.account }}</p>
+          </div>
+          <div class="field">
+            <label for="pwd2">密码</label>
+            <input id="pwd2" v-model="form.password" type="password" placeholder="8~20 位，含字母与数字" autocomplete="new-password" />
+            <p v-if="fieldErrors.password" class="hint" style="color: var(--danger)">{{ fieldErrors.password }}</p>
+          </div>
+          <div class="field">
+            <label for="pwd3">确认密码</label>
+            <input id="pwd3" v-model="form.confirm" type="password" placeholder="再输入一次" autocomplete="new-password" />
+            <p v-if="fieldErrors.confirm" class="hint" style="color: var(--danger)">{{ fieldErrors.confirm }}</p>
+          </div>
+          <div class="field">
+            <label for="nick">昵称（选填）</label>
+            <input id="nick" v-model="form.nickname" type="text" :maxlength="32" placeholder="不填则由系统随机生成" />
+          </div>
+          <button class="btn auth-btn" type="submit" :disabled="loading">{{ loading ? '注册中…' : '注册并进入' }}</button>
+        </form>
+
+        <p class="auth-alt">已有账号？<router-link to="/login">去登录</router-link></p>
+        <p class="hint">昵称由系统随机生成，注册后可在「个人信息」里修改；注册商家后需要先提交资质，通过后才能上架房源。</p>
+      </div>
+      <p class="auth-foot">栖居 RentHub · 软件工程综合实训 · 全部数据为教学演示</p>
+    </main>
   </div>
 </template>
-
-<style scoped>
-.auth-wrap {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  background: linear-gradient(160deg, #f0f6ff 0%, #f5f5f5 55%, #fafafa 100%);
-}
-.auth-panel {
-  width: min(460px, 100%);
-  background: #fff;
-  border: 1px solid var(--rh-border);
-  border-radius: 12px;
-  padding: 28px 28px 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-}
-.auth-brand {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--rh-text);
-}
-.auth-brand span {
-  margin-left: 6px;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--rh-primary);
-}
-h1 {
-  font-size: 20px;
-  margin: 18px 0 6px;
-}
-</style>
