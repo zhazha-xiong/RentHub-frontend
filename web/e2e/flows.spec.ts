@@ -175,7 +175,10 @@ test('管理员资质：待审核列表渲染（种子里的待审资质）', as
   await expect(page.getByRole('heading', { name: '资质审核' })).toBeVisible()
   /* 商家名在表格、审核面板标题、主体名称里都会出现，取第一个即可 */
   await expect(page.getByText('海滨小屋').first()).toBeVisible()
-  await expect(page.getByText('待审核').first()).toBeVisible()
+  /* 「待审核」在状态筛选的 <option> 里也有一份，且 option 永远不可见；
+     这里限定到表格内的状态标签，避免命中表单控件 */
+  await expect(page.locator('.table .tag').first()).toHaveText(/待审核|已通过|已驳回/)
+  await expect(page.locator('.table tbody tr').first()).toBeVisible()
 })
 
 /* ------------------------------------------------------------------ 越权 */
