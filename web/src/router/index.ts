@@ -8,6 +8,8 @@ declare module 'vue-router' {
     title?: string
     requiresAuth?: boolean
     roles?: Role[]
+    /** 旧版 .page.narrow：窄版内容区（下单、个人信息等表单页） */
+    narrow?: boolean
   }
 }
 
@@ -23,7 +25,7 @@ const routes: RouteRecordRaw[] = [
         path: 'booking/:id',
         name: 'booking',
         component: () => import('@/views/BookingView.vue'),
-        meta: { title: '确认订单', requiresAuth: true, roles: ['tenant'] },
+        meta: { title: '确认订单', requiresAuth: true, roles: ['tenant'], narrow: true },
       },
       {
         path: 'favorites',
@@ -44,7 +46,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/NotificationsView.vue'),
         meta: { title: '通知中心', requiresAuth: true },
       },
-      { path: 'me', name: 'profile', component: () => import('@/views/ProfileView.vue'), meta: { title: '个人信息', requiresAuth: true } },
+      { path: 'me', name: 'profile', component: () => import('@/views/ProfileView.vue'), meta: { title: '个人信息', requiresAuth: true, narrow: true } },
 
       {
         path: 'merchant/listings',

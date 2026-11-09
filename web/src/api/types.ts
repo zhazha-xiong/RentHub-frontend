@@ -124,6 +124,12 @@ export interface ListingDetail extends ListingCard {
   view_count?: number
   favorite_count?: number
   favorited?: boolean
+  /** 旧版「房源描述」板块底部的 kv：付款方式 / 看房 / 车位 */
+  payment_method?: string | null
+  viewing_method?: string | null
+  parking?: string | null
+  /** 区域编码，用于拉「相关推荐」 */
+  region_code?: string
 }
 
 export interface ListingWriteReq {

@@ -1,150 +1,139 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 
+/**
+ * 顶栏 + 内容容器 + 页脚
+ *
+ * 结构与 class 完全沿用旧版（legacy/v2-static 的 .topbar / .sheet / .page / .foot），
+ * 所以 legacy.css 里的样式直接生效，视觉与旧版一致。
+ */
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+const open = ref(false)
 
-/** 顶栏导航：按角色给菜单（访客看公开页） */
-const menus = computed(() => {
+/** 顶栏链接：按角色给（旧版是 找房 / 收藏 / 订单 / 通知） */
+const links = computed(() => {
   if (auth.isMerchant) {
     return [
-      { key: 'merchant-listings', label: '房源管理', to: '/merchant/listings' },
-      { key: 'merchant-orders', label: '订单管理', to: '/merchant/orders' },
-      { key: 'merchant-qualification', label: '商家资质', to: '/merchant/qualification' },
+      { to: '/merchant/listings', text: '房源管理' },
+      { to: '/merchant/orders', text: '订单管理' },
+      { to: '/merchant/qualification', text: '商家资质' },
     ]
   }
   if (auth.isAdmin) {
     return [
-      { key: 'admin-qualifications', label: '资质审核', to: '/admin/qualifications' },
-      { key: 'admin-listings', label: '房源处置', to: '/admin/listings' },
-      { key: 'admin-users', label: '用户管理', to: '/admin/users' },
+      { to: '/admin/qualifications', text: '资质审核' },
+      { to: '/admin/listings', text: '房源处置' },
+      { to: '/admin/users', text: '用户管理' },
     ]
   }
-  const base = [
-    { key: 'home', label: '找房', to: '/' },
-    { key: 'ai-chat', label: 'AI 找房', to: '/ai' },
+  return [
+    { to: '/', text: '找房' },
+    { to: '/ai', text: 'AI 找房' },
   ]
-  if (auth.isLoggedIn) {
-    base.push(
-      { key: 'favorites', label: '我的收藏', to: '/favorites' },
-      { key: 'orders', label: '我的订单', to: '/orders' },
+})
+
+/** 账号下拉：旧版顺序（收藏 → 订单 → 通知 → 个人信息 → 切换端 → 退出） */
+const menu = computed(() => {
+  const items: { to: string; text: string; count?: number }[] = []
+  if (auth.role === 'tenant' || auth.role === 'guest') {
+    items.push(
+      { to: '/favorites', text: '我的收藏', count: auth.counts.favorites },
+      { to: '/orders', text: '我的订单', count: auth.counts.orders },
+      { to: '/notifications', text: '通知中心', count: auth.counts.messages },
+      { to: '/me', text: '个人信息' },
+    )
+  } else if (auth.isMerchant) {
+    items.push(
+      { to: '/merchant/listings', text: '我的房源' },
+      { to: '/merchant/orders', text: '订单管理' },
+      { to: '/merchant/qualification', text: '商家信息与资质' },
+    )
+  } else {
+    items.push(
+      { to: '/admin/qualifications', text: '资质审核' },
+      { to: '/admin/listings', text: '房源处置' },
+      { to: '/admin/users', text: '用户管理' },
     )
   }
-  return base
-})
-
-const selectedKeys = computed(() => {
-  const name = String(route.name ?? '')
-  if (name === 'home') return ['home']
-  if (name === 'listing-detail') return ['home']
-  return [name]
-})
-
-const userMenu = computed(() => {
-  const items: { key: string; label: string }[] = [
-    { key: 'profile', label: '个人信息' },
-    { key: 'notifications', label: '通知中心' },
-  ]
-  if (auth.isMerchant) items.push({ key: 'merchant-listings', label: '房源管理' })
-  if (auth.isAdmin) items.push({ key: 'admin-qualifications', label: '资质审核' })
-  items.push({ key: 'logout', label: '退出登录' })
   return items
 })
 
-function goto(to: string) {
-  void router.push(to)
+const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
+
+function onDocClick(e: MouseEvent) {
+  if (!open.value) return
+  const el = e.target as HTMLElement | null
+  if (el?.closest?.('.account')) return
+  open.value = false
+}
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') open.value = false
 }
 
-function onMenuClick(info: { key: string | number }) {
-  const target = menus.value.find((m) => m.key === String(info.key))
-  if (target) goto(target.to)
+async function logout() {
+  open.value = false
+  await auth.logout()
+  message.success('已退出登录')
+  await router.push('/login')
 }
 
-async function onUserMenuClick(info: { key: string | number }) {
-  const key = String(info.key)
-  if (key === 'logout') {
-    await auth.logout()
-    message.success('已退出登录')
-    void router.push('/login')
-    return
-  }
-  const map: Record<string, string> = {
-    profile: '/me',
-    notifications: '/notifications',
-    'merchant-listings': '/merchant/listings',
-    'admin-qualifications': '/admin/qualifications',
-  }
-  if (map[key]) goto(map[key])
-}
+onMounted(() => {
+  document.addEventListener('click', onDocClick)
+  document.addEventListener('keydown', onKey)
+})
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick)
+  document.removeEventListener('keydown', onKey)
+})
 </script>
 
 <template>
-  <a-layout style="min-height: 100vh">
-    <a-layout-header
-      style="
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        padding: 0;
-        border-bottom: 1px solid var(--rh-border);
-        background: #fff;
-      "
-    >
-      <div class="rh-container" style="display: flex; align-items: center; gap: 20px; height: 64px">
-        <router-link to="/" style="font-size: 18px; font-weight: 600; color: var(--rh-text); white-space: nowrap">
-          栖居<span style="color: var(--rh-primary); font-size: 12px; margin-left: 4px; letter-spacing: 0.08em">RENTHUB</span>
+  <div>
+    <header class="topbar">
+      <router-link class="brand" to="/">栖居<span class="brand-en">RentHub</span></router-link>
+      <button class="city" type="button">大连<span class="chev">▾</span></button>
+
+      <nav class="links">
+        <router-link v-for="l in links" :key="l.to" :to="l.to" :aria-current="isActive(l.to) ? 'page' : undefined">
+          {{ l.text }}
         </router-link>
+      </nav>
 
-        <a-menu
-          mode="horizontal"
-          :selected-keys="selectedKeys"
-          style="flex: 1; min-width: 0; border-bottom: none"
-          @click="onMenuClick"
-        >
-          <a-menu-item v-for="m in menus" :key="m.key">{{ m.label }}</a-menu-item>
-        </a-menu>
-
-        <a-tooltip title="通知中心">
-          <a-badge :count="auth.counts.messages" :overflow-count="99">
-            <a-button type="text" shape="circle" aria-label="通知中心" @click="goto('/notifications')">
-              <template #icon><span style="font-size: 16px">🔔</span></template>
-            </a-button>
-          </a-badge>
-        </a-tooltip>
-
+      <div class="account">
         <template v-if="auth.isLoggedIn">
-          <a-dropdown placement="bottomRight">
-            <a-button type="text">
-              <a-avatar size="small" style="background: var(--rh-primary); margin-right: 6px">{{ auth.initial }}</a-avatar>
-              {{ auth.displayName }}
-            </a-button>
-            <template #overlay>
-              <a-menu @click="onUserMenuClick">
-                <a-menu-item v-for="item in userMenu" :key="item.key">{{ item.label }}</a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
+          <button class="avatar-btn" type="button" aria-haspopup="menu" :aria-expanded="open ? 'true' : 'false'" @click.stop="open = !open">
+            <span class="avatar">{{ auth.initial }}</span>
+            <span class="uname">{{ auth.displayName }}</span>
+            <span class="chev">▾</span>
+          </button>
+          <div v-show="open" class="menu" role="menu">
+            <router-link v-for="m in menu" :key="m.to" :to="m.to" role="menuitem" @click="open = false">
+              {{ m.text }}<span v-if="m.count" class="badge">{{ m.count }}</span>
+            </router-link>
+            <hr />
+            <a role="menuitem" href="/login" @click.prevent="logout">退出登录</a>
+          </div>
         </template>
         <template v-else>
-          <a-button type="text" @click="goto('/login')">登录</a-button>
-          <a-button type="primary" @click="goto('/register')">注册</a-button>
+          <router-link class="btn ghost" to="/login" style="text-decoration: none">登录</router-link>
+          <router-link class="btn" to="/register" style="text-decoration: none">注册</router-link>
         </template>
       </div>
-    </a-layout-header>
+    </header>
 
-    <a-layout-content>
-      <div class="rh-container rh-page">
+    <div class="sheet">
+      <div class="page" :class="{ narrow: route.meta.narrow }">
         <router-view />
+        <footer class="foot">
+          <span>栖居 RentHub · 大连 · 教学演示数据</span>
+          <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+        </footer>
       </div>
-    </a-layout-content>
-
-    <a-layout-footer style="text-align: center; color: var(--rh-text-3); font-size: 13px; background: #fafafa">
-      <div>栖居 RentHub · 大连 · 教学演示数据（新前端 · 假后端，未接真实后端）</div>
-      <div style="margin-top: 4px">Vue 3.5 · Vite 5 · Pinia 2 · Vue Router 4 · Ant Design Vue 4 · Axios 1.7</div>
-    </a-layout-footer>
-  </a-layout>
+    </div>
+  </div>
 </template>

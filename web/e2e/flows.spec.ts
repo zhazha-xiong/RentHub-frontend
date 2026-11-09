@@ -23,15 +23,15 @@ async function login(page: Page, role: '租客' | '商家' | '管理员', accoun
 
 test('主流程：租客登录 → 找房 → 详情 → 下单 → 支付', async ({ page }) => {
   await login(page, '租客', 'xiaofs')
-  await expect(page.getByRole('heading', { name: '大连租房' })).toBeVisible()
+  await expect(page.locator('.filters')).toBeVisible()
 
   /* 列表 → 详情 */
   await page.locator('a[href="/listings/101"]').first().click()
-  await expect(page.getByRole('button', { name: '立即下单' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '立即租下' })).toBeVisible()
   await expect(page.getByText('AI 参考价')).toBeVisible()
 
   /* 下单 */
-  await page.getByRole('button', { name: '立即下单' }).click()
+  await page.getByRole('link', { name: '立即租下' }).click()
   await expect(page.getByRole('heading', { name: '确认订单' })).toBeVisible()
   await page.getByRole('button', { name: '提交订单' }).click()
 
@@ -54,7 +54,7 @@ test('主流程：商家登录 → 接单 → 完成', async ({ page }) => {
   expect(order.status()).toBe(201)
 
   await login(page, '商家', 'xingchen')
-  await page.getByRole('menuitem', { name: '订单管理' }).first().click()
+  await page.getByRole('link', { name: '订单管理' }).first().click()
   await expect(page.getByRole('heading', { name: '订单管理' })).toBeVisible()
 
   await page.getByRole('button', { name: '接单' }).first().click()
@@ -68,7 +68,7 @@ test('越权：租客访问商家端被路由守卫拦下', async ({ page }) => 
   await login(page, '租客', 'xiaofs')
   await page.goto('/merchant/listings')
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByRole('heading', { name: '大连租房' })).toBeVisible()
+  await expect(page.locator('.filters')).toBeVisible()
 })
 
 test('越权：未登录访问订单页跳登录并带回跳地址', async ({ page }) => {

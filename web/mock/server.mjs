@@ -185,6 +185,11 @@ function listingDetail(l) {
       service_fee: Math.round(l.rent * l.serviceFeeRate * (l.minLeaseMonths || 1)),
       service_fee_rate: l.serviceFeeRate,
     },
+    /* 旧版详情页 kv 需要的字段 */
+    region_code: l.regionCode,
+    payment_method: l.paymentMethod ?? null,
+    viewing_method: l.viewingMethod ?? null,
+    parking: l.parking ?? null,
     merchant: {
       id: l.merchantId,
       name: merchant?.nickname ?? '未知商家',

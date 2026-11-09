@@ -139,6 +139,12 @@ export const LISTINGS = [
     metroLine: '1', walkMinutes: 5, rooms: 2, area: 86, floor: 14, totalFloor: 26,
     rent: 320000, deposit: 320000, availableDate: '2026-12-01', publishedAt: iso('2026-11-01T10:00:00+08:00'),
     createdAt: iso('2026-10-28T10:00:00+08:00'),
+    /* 与旧版 detail.html 的「卧室设施 / 公共设施」完全对齐 */
+    facilities: {
+      bed: ['tv', 'ac', 'wardrobe', 'bed', 'bath', 'lock', 'balcony', 'heater'],
+      public: ['fridge', 'washer', 'water', 'wifi', 'sofa', 'hood', 'stove', 'cook'],
+    },
+    parking: '小区地下车库，另计',
     images: [
       { key: 'listing/101-1.jpg', sort: 0, isCover: true },
       { key: 'listing/101-2.jpg', sort: 1, isCover: false },

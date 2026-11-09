@@ -3,216 +3,293 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { aiApi, favoriteApi, listingApi } from '@/api'
-import type { ListingDetail, PriceResp } from '@/api/types'
-import { LISTING_STATUS, RENT_TYPE, money } from '@/utils/format'
+import type { ListingCard, ListingDetail, PriceResp } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
+import { bedroomFacilities, publicFacilities } from '@/utils/facilities'
+import { LISTING_STATUS, RENT_TYPE, money } from '@/utils/format'
+import IconDefs from '@/components/IconDefs.vue'
 
+/**
+ * 房源详情 —— 结构与 class 完全沿用旧版 detail.html：
+ *   左栏：.media（.stage 大图 + 箭头 + 计数，.thumbs 缩略图）
+ *         .panel（房源描述 + kv、位置与交通 + kv、卧室设施 / 公共设施 .facgrid、相关推荐 .related）
+ *   右栏：.info（标题 / meta / 价格行 / tags / .spec 户型等信息 / 商家 / 操作 / 问问 AI）
+ * 新版改进：右栏 .info-sticky 跟随滚动固定（旧版是普通 aside）。
+ */
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
 const detail = ref<ListingDetail | null>(null)
+const related = ref<ListingCard[]>([])
 const price = ref<PriceResp | null>(null)
 const loading = ref(true)
-const favoriting = ref(false)
+const errorText = ref('')
+const index = ref(0)
+const lightbox = ref(false)
+const favorited = ref(false)
+const question = ref('')
 
-const id = computed(() => Number(route.params.id))
+const images = computed(() => detail.value?.images ?? [])
+const currentImage = computed(() => images.value[index.value] ?? '')
+const thumbs = computed(() => images.value.slice(0, 5))
+const bedFacilities = computed(() => bedroomFacilities(detail.value?.facilities.bed ?? []))
+const pubFacilities = computed(() => publicFacilities(detail.value?.facilities.public ?? []))
+
+const tags = computed(() => {
+  const d = detail.value
+  if (!d) return []
+  const list: { text: string; cls?: string }[] = []
+  if (d.metro) list.push({ text: '近地铁' })
+  if (d.tags.some((t) => t.includes('电梯'))) list.push({ text: '有电梯' })
+  if (d.spec.decoration) list.push({ text: d.spec.decoration })
+  list.push({ text: LISTING_STATUS[d.status]?.text ?? d.status, cls: 'plain' })
+  if (d.viewing_method) list.push({ text: d.viewing_method, cls: 'hue' })
+  return list
+})
+
+function prev() {
+  if (!images.value.length) return
+  index.value = (index.value - 1 + images.value.length) % images.value.length
+}
+function next() {
+  if (!images.value.length) return
+  index.value = (index.value + 1) % images.value.length
+}
 
 async function load() {
   loading.value = true
   try {
-    detail.value = await listingApi.detail(id.value)
-    price.value = await aiApi.priceReference({ listing_id: id.value }).catch(() => null)
+    const data = await listingApi.detail(String(route.params.id))
+    detail.value = data
+    favorited.value = Boolean(data.favorited)
+    /* 相关推荐：同区域优先（旧版是「同区域、同户型、价格接近的 3 套」） */
+    const pool = await listingApi.list({ region: data.region_code, sort: 'composite', limit: 6 }).catch(() => null)
+    related.value = (pool?.items ?? []).filter((x) => x.id !== data.id).slice(0, 3)
+    /* AI 参考价（新版功能，用旧版 panel 结构展示；样本不足时只给提示，不给假区间） */
+    price.value = await aiApi.priceReference({ listing_id: data.id }).catch(() => null)
   } catch (err) {
-    message.error((err as Error).message)
+    errorText.value = (err as Error).message
   } finally {
     loading.value = false
   }
 }
 
 async function toggleFavorite() {
+  if (!detail.value) return
   if (!auth.isLoggedIn) {
-    void router.push({ path: '/login', query: { redirect: route.fullPath } })
+    await router.push({ path: '/login', query: { redirect: route.fullPath } })
     return
   }
-  if (!detail.value) return
-  favoriting.value = true
   try {
-    const res = await favoriteApi.toggle(detail.value.id, !detail.value.favorited)
-    detail.value.favorited = res.favorited
-    detail.value.favorite_count = res.count
+    const res = await favoriteApi.toggle(detail.value.id, !favorited.value)
+    favorited.value = res.favorited
     auth.setCounts({ favorites: Math.max(0, auth.counts.favorites + (res.favorited ? 1 : -1)) })
-    message.success(res.favorited ? '已收藏' : '已取消收藏')
+    message.success(res.favorited ? '已加入收藏' : '已取消收藏')
   } catch (err) {
     message.error((err as Error).message)
-  } finally {
-    favoriting.value = false
   }
 }
 
-function book() {
-  if (!detail.value) return
-  if (!auth.isLoggedIn) {
-    void router.push({ path: '/login', query: { redirect: `/booking/${detail.value.id}` } })
-    return
-  }
-  if (auth.role !== 'tenant') {
-    message.warning('只有租客账号可以下单')
-    return
-  }
-  void router.push(`/booking/${detail.value.id}`)
+function ask(text?: string) {
+  void router.push({ path: '/ai', query: { listing_id: String(route.params.id), q: text ?? '' } })
 }
 
-function askAi() {
-  void router.push({ path: '/ai', query: { listing_id: String(id.value) } })
+function askFromInput() {
+  ask(question.value.trim() || undefined)
 }
 
 onMounted(load)
 </script>
 
 <template>
-  <a-spin :spinning="loading">
-    <a-result v-if="!detail && !loading" status="404" title="房源不存在或已下架">
+  <div>
+    <IconDefs />
+
+    <p v-if="detail" class="crumbs">
+      <router-link to="/">找房</router-link>
+      <span>/</span>{{ detail.region_name }}
+      <template v-if="detail.community"><span>/</span>{{ detail.community }}</template>
+    </p>
+
+    <p v-if="loading" class="loading-hint">正在加载房源…</p>
+    <a-result v-else-if="!detail" status="404" :title="errorText || '房源不存在或已下架'">
       <template #extra><a-button type="primary" @click="router.push('/')">回到找房</a-button></template>
     </a-result>
 
-    <div v-else-if="detail">
-      <a-breadcrumb style="margin-bottom: 12px">
-        <a-breadcrumb-item><router-link to="/">找房</router-link></a-breadcrumb-item>
-        <a-breadcrumb-item>{{ detail.region_name }}</a-breadcrumb-item>
-        <a-breadcrumb-item>{{ detail.title }}</a-breadcrumb-item>
-      </a-breadcrumb>
+    <div v-else class="detail">
+      <!-- 左栏 -->
+      <div>
+        <div class="media">
+          <div class="stage">
+            <img :src="currentImage" :alt="`${detail.title} 实拍图`" @click="lightbox = true" />
+            <button v-if="images.length > 1" class="nav prev" type="button" aria-label="上一张" @click="prev">‹</button>
+            <button v-if="images.length > 1" class="nav next" type="button" aria-label="下一张" @click="next">›</button>
+            <span class="counter">{{ index + 1 }} / {{ images.length }}</span>
+          </div>
+          <div v-if="images.length" class="thumbs">
+            <button
+              v-for="(img, i) in thumbs"
+              :key="img + i"
+              class="th"
+              :class="{ on: i === index }"
+              type="button"
+              :aria-label="`第 ${i + 1} 张`"
+              @click="index = i"
+            >
+              <img :src="img" alt="" />
+            </button>
+            <button v-if="images.length > 5" class="th more" type="button" :aria-label="`查看全部 ${images.length} 张`" @click="lightbox = true">
+              +{{ images.length - 4 }}
+            </button>
+          </div>
+        </div>
 
-      <a-row :gutter="20">
-        <a-col :xs="24" :lg="15">
-          <a-card :body-style="{ padding: 12 }">
-            <a-image-preview-group>
-              <a-row :gutter="8">
-                <a-col v-for="(img, i) in detail.images" :key="img" :span="i === 0 ? 24 : 8">
-                  <a-image :src="img" :height="i === 0 ? 360 : 118" style="object-fit: cover; width: 100%; border-radius: 6px" />
-                </a-col>
-              </a-row>
-            </a-image-preview-group>
-            <a-empty v-if="!detail.images.length" description="暂无图片" />
-          </a-card>
+        <section class="panel">
+          <h2>房源描述</h2>
+          <p class="prose">{{ detail.description }}</p>
+          <div class="kv">
+            <span><b>付款方式</b> {{ detail.payment_method || '押一付三' }}</span>
+            <span><b>最短租期</b> {{ detail.spec.min_lease_months }} 个月</span>
+            <span><b>看房</b> {{ detail.viewing_method || '随时可看' }}</span>
+            <span><b>车位</b> {{ detail.parking || '无' }}</span>
+          </div>
+        </section>
 
-          <a-card style="margin-top: 16px" title="房源描述">
-            <p style="line-height: 1.8; margin: 0">{{ detail.description }}</p>
-            <a-divider />
-            <a-descriptions :column="2" size="small">
-              <a-descriptions-item label="规格">
-                {{ detail.layout }} · {{ detail.area }}㎡ · {{ detail.spec.orientation }}
-              </a-descriptions-item>
-              <a-descriptions-item label="楼层">{{ detail.floor_desc }}</a-descriptions-item>
-              <a-descriptions-item label="装修">{{ detail.spec.decoration }}</a-descriptions-item>
-              <a-descriptions-item label="类型">
-                {{ detail.spec.house_type }} · {{ RENT_TYPE[detail.spec.rent_type] }}
-              </a-descriptions-item>
-              <a-descriptions-item label="可入住">{{ detail.spec.available_date }}</a-descriptions-item>
-              <a-descriptions-item label="最短租期">{{ detail.spec.min_lease_months }} 个月</a-descriptions-item>
-              <a-descriptions-item label="位置" :span="2">
-                {{ detail.region_name }} · {{ detail.address }}
-                <template v-if="detail.metro">
-                  （地铁 {{ detail.metro.line }} 号线步行 {{ detail.metro.walk_minutes }} 分钟）
-                </template>
-              </a-descriptions-item>
-            </a-descriptions>
+        <section class="panel">
+          <h2>位置与交通</h2>
+          <p class="prose">{{ detail.address }}</p>
+          <div class="kv">
+            <span><b>小区</b> {{ detail.community || '—' }}</span>
+            <span v-if="detail.metro"><b>地铁</b> {{ detail.metro.line }} 号线</span>
+            <span v-if="detail.metro"><b>步行</b> {{ detail.metro.walk_minutes }} 分钟</span>
+          </div>
+        </section>
 
-            <a-divider>设施</a-divider>
-            <a-space wrap>
-              <a-tag v-for="f in detail.facilities.bed" :key="`bed-${f}`" color="blue">{{ f }}</a-tag>
-              <a-tag v-for="f in detail.facilities.public" :key="`pub-${f}`" color="green">{{ f }}</a-tag>
-            </a-space>
-          </a-card>
-
-          <a-card v-if="price" style="margin-top: 16px" title="AI 参考价">
-            <template #extra>
-              <a-tag :color="price.insufficient ? 'default' : price.relaxed ? 'orange' : 'blue'">
-                {{ price.insufficient ? '样本不足' : price.relaxed ? `已放宽：${price.scope_label ?? '更大范围'}` : price.scope_label ?? '同区域样本' }}
-              </a-tag>
-            </template>
-
-            <a-alert v-if="price.insufficient || !price.range" type="info" show-icon :message="price.note" />
-
-            <template v-else>
-              <a-row :gutter="12">
-                <a-col :span="8">
-                  <a-statistic title="中位价" :value="money(price.range.median)" suffix="元/月" />
-                </a-col>
-                <a-col :span="8">
-                  <a-statistic title="低区间（P25）" :value="money(price.range.p25 ?? price.range.min)" suffix="元/月" />
-                </a-col>
-                <a-col :span="8">
-                  <a-statistic title="高区间（P75）" :value="money(price.range.p75 ?? price.range.max)" suffix="元/月" />
-                </a-col>
-              </a-row>
-              <div class="rh-muted" style="margin-top: 10px">
-                {{ price.note }} 样本 {{ price.sample_count }} 条（最少 {{ price.min_sample ?? 3 }} 条）。
-              </div>
-              <template v-if="price.peers.length">
-                <a-divider style="margin: 12px 0" />
-                <div class="rh-muted">对标房源</div>
-                <a-list size="small" :data-source="price.peers">
-                  <template #renderItem="{ item }">
-                    <a-list-item>
-                      <span>{{ item.title }}</span>
-                      <span class="rh-muted">{{ item.area }}㎡ · {{ item.decoration }}</span>
-                      <span class="rh-price">{{ money(item.rent) }} 元/月</span>
-                    </a-list-item>
-                  </template>
-                </a-list>
-              </template>
-            </template>
-          </a-card>
-        </a-col>
-
-        <a-col :xs="24" :lg="9">
-          <a-card style="position: sticky; top: 84px">
-            <div style="display: flex; align-items: baseline; gap: 8px">
-              <span class="rh-price" style="font-size: 30px">{{ money(detail.rent) }}</span>
-              <span class="rh-muted">元/月</span>
-              <a-tag :color="LISTING_STATUS[detail.status]?.color" style="margin-left: auto">
-                {{ LISTING_STATUS[detail.status]?.text ?? detail.status }}
-              </a-tag>
+        <section class="panel">
+          <h2>卧室设施</h2>
+          <div v-if="bedFacilities.length" class="facgrid">
+            <div v-for="f in bedFacilities" :key="f.label" class="fac">
+              <svg class="ic" aria-hidden="true"><use :href="`#${f.icon}`" /></svg><span>{{ f.label }}</span>
             </div>
-            <div class="rh-muted" style="margin-top: 8px">
-              押金 {{ money(detail.price.deposit) }} 元 · 服务费约 {{ money(detail.price.service_fee) }} 元
+          </div>
+          <p v-else class="hint">商家暂未填写卧室设施</p>
+
+          <h2 style="margin-top: 24px">公共设施</h2>
+          <div v-if="pubFacilities.length" class="facgrid">
+            <div v-for="f in pubFacilities" :key="f.label" class="fac">
+              <svg class="ic" aria-hidden="true"><use :href="`#${f.icon}`" /></svg><span>{{ f.label }}</span>
             </div>
+          </div>
+          <p v-else class="hint">商家暂未填写公共设施</p>
+        </section>
 
-            <a-divider style="margin: 14px 0" />
-
-            <div style="display: flex; align-items: center; gap: 10px">
-              <a-avatar style="background: var(--rh-primary)">{{ detail.merchant.name.slice(0, 1) }}</a-avatar>
-              <div>
-                <div style="font-weight: 600">{{ detail.merchant.name }}</div>
-                <div class="rh-muted">
-                  在架 {{ detail.merchant.listing_count }} 套
-                  <a-tag v-if="detail.merchant.verified" color="green" style="margin-left: 6px">资质已认证</a-tag>
-                  <a-tag v-else color="orange" style="margin-left: 6px">资质未认证</a-tag>
-                </div>
-              </div>
+        <section v-if="price" class="panel">
+          <h2>AI 参考价</h2>
+          <p v-if="price.insufficient || !price.range" class="hint">{{ price.note }}</p>
+          <template v-else>
+            <p class="prose">
+              当前口径「{{ price.scope_label ?? '同区域' }}」，样本 {{ price.sample_count }} 条（最少
+              {{ price.min_sample ?? 3 }} 条）：低区间 {{ money(price.range.p25 ?? price.range.min) }} 元，
+              中位价 <b>{{ money(price.range.median) }}</b> 元，高区间 {{ money(price.range.p75 ?? price.range.max) }} 元。
+            </p>
+            <div v-if="price.peers.length" class="kv">
+              <span v-for="p in price.peers.slice(0, 3)" :key="p.title">
+                <b>{{ p.title }}</b> {{ p.area }}㎡ · {{ p.decoration }} · {{ money(p.rent) }} 元/月
+              </span>
             </div>
+          </template>
+          <p v-if="price.relaxed && !price.insufficient" class="hint">已放宽口径（{{ price.scope_label }}），仅供参考。</p>
+        </section>
 
-            <a-space direction="vertical" style="width: 100%; margin-top: 16px">
-              <a-button type="primary" size="large" block :disabled="detail.status !== 'online'" @click="book">
-                {{ detail.status === 'online' ? '立即下单' : '当前不可租' }}
-              </a-button>
-              <a-space style="width: 100%">
-                <a-button :loading="favoriting" @click="toggleFavorite">
-                  {{ detail.favorited ? '已收藏' : '收藏' }}
-                  <template v-if="detail.favorite_count">（{{ detail.favorite_count }}）</template>
-                </a-button>
-                <a-button @click="askAi">问问 AI</a-button>
-              </a-space>
-            </a-space>
+        <section class="panel">
+          <h2>相关推荐</h2>
+          <p class="hint" style="margin: 0 0 12px">同区域、价格接近的 {{ related.length }} 套</p>
+          <div v-if="related.length" class="related">
+            <router-link v-for="r in related" :key="r.id" class="rel" :to="`/listings/${r.id}`">
+              <img :src="r.cover" :alt="r.title" loading="lazy" />
+              <p class="t">{{ r.title }}</p>
+              <p class="m">{{ r.area }}㎡ · {{ r.floor_desc }}</p>
+              <p class="p"><b>{{ money(r.rent) }}</b> 元/月</p>
+            </router-link>
+          </div>
+          <p v-else class="hint">暂无相似房源</p>
+        </section>
+      </div>
 
-            <a-divider style="margin: 16px 0" />
-            <div class="rh-muted">
-              浏览 {{ detail.view_count ?? 0 }} 次 · 状态「{{ LISTING_STATUS[detail.status]?.text }}」
-            </div>
-          </a-card>
-        </a-col>
-      </a-row>
+      <!-- 右栏：旧版 .info + 新版 sticky -->
+      <aside class="info info-sticky">
+        <h1 class="title">{{ detail.title }}</h1>
+        <p class="meta">
+          {{ detail.region_name }} · {{ detail.area }}㎡ · {{ detail.spec.orientation }} · {{ detail.floor_desc }} ·
+          {{ detail.spec.decoration }}
+        </p>
+
+        <div class="price-row">
+          <b>{{ money(detail.rent) }}</b>
+          <span>元/月 · 押金 {{ money(detail.price.deposit) }} · 服务费 {{ money(detail.price.service_fee) }}</span>
+        </div>
+
+        <div class="tags">
+          <span v-for="t in tags" :key="t.text" class="tag" :class="t.cls">{{ t.text }}</span>
+        </div>
+
+        <dl class="spec">
+          <div><dt>户型</dt><dd>{{ detail.spec.rooms }} 室 {{ detail.spec.halls }} 厅 {{ detail.spec.baths }} 卫</dd></div>
+          <div><dt>面积</dt><dd>{{ detail.area }} ㎡</dd></div>
+          <div><dt>楼层</dt><dd>{{ detail.spec.floor ?? '—' }} / {{ detail.spec.total_floor ?? '—' }} 层</dd></div>
+          <div><dt>朝向</dt><dd>{{ detail.spec.orientation || '—' }}</dd></div>
+          <div><dt>装修</dt><dd>{{ detail.spec.decoration || '—' }}</dd></div>
+          <div><dt>类型</dt><dd>{{ detail.spec.house_type || '—' }}</dd></div>
+          <div><dt>租赁</dt><dd>{{ RENT_TYPE[detail.spec.rent_type] ?? detail.spec.rent_type }}</dd></div>
+          <div><dt>可入住</dt><dd>{{ detail.spec.available_date }}</dd></div>
+        </dl>
+
+        <div class="merchant">
+          <span class="ava">{{ detail.merchant.name.slice(0, 1) }}</span>
+          <div>
+            <b>{{ detail.merchant.name }}</b>
+            <p>
+              {{ detail.merchant.listing_count }} 套在架 ·
+              {{ detail.merchant.verified ? '资质已认证' : '资质未认证' }} · 平均响应 1 小时
+            </p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn ghost" type="button" @click="toggleFavorite">{{ favorited ? '已收藏' : '收藏' }}</button>
+          <router-link
+            class="btn"
+            :to="detail.status === 'online' ? `/booking/${detail.id}` : `/listings/${detail.id}`"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none"
+            :style="detail.status !== 'online' ? { opacity: 0.55, pointerEvents: 'none' } : undefined"
+          >
+            {{ detail.status === 'online' ? '立即租下' : '当前不可租' }}
+          </router-link>
+        </div>
+
+        <div class="askai">
+          <div class="ah"><span class="dot-ai" aria-hidden="true"></span><b>问问 AI</b></div>
+          <p class="q1">「这套采光和通勤怎么样？」</p>
+          <div class="qh">
+            <button type="button" @click="ask('离地铁多远')">离地铁多远</button>
+            <button type="button" @click="ask('和附近同价位比')">和附近同价位比</button>
+          </div>
+          <form class="qform" @submit.prevent="askFromInput">
+            <input v-model="question" type="text" placeholder="就这套继续问" aria-label="就这套继续问" />
+            <button class="btn sm" type="submit">发送</button>
+          </form>
+        </div>
+      </aside>
     </div>
-  </a-spin>
+
+    <!-- 旧版没有 lightbox，这里补一个最简大图查看（点大图/缩略图「+N」打开） -->
+    <div v-if="lightbox" class="lightbox" @click.self="lightbox = false">
+      <button class="lb-close" type="button" aria-label="关闭" @click="lightbox = false">×</button>
+      <button class="lb-nav prev" type="button" aria-label="上一张" @click="prev">‹</button>
+      <img :src="currentImage" :alt="detail?.title ?? ''" />
+      <button class="lb-nav next" type="button" aria-label="下一张" @click="next">›</button>
+      <span class="lb-counter">{{ index + 1 }} / {{ images.length }}</span>
+    </div>
+  </div>
 </template>
