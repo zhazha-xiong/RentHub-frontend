@@ -101,6 +101,16 @@ export interface Page<T> {
   next_cursor: string | null
 }
 
+/** 房源列表响应：除分页外还带统计与「一句话搜索」的放宽提示 */
+export interface ListingPage extends Page<ListingCard> {
+  total?: number
+  stats?: { total: number; today_new: number }
+  /** 没有精确命中（假后端做了放宽或随机推荐） */
+  relaxed?: boolean
+  /** 后端给的人话说明，前端直接显示，不自己拼 */
+  relaxed_note?: string
+}
+
 export interface ListingSpec {
   rooms: number
   halls: number

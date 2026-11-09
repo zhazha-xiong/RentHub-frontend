@@ -181,6 +181,99 @@ function publishedLabel(iso) {
   return `${days} 天前上架`
 }
 
+/* ==========================================================================
+ * 一句话搜索的「假后端解析」
+ *
+ * 首页的输入框写的是「说说你想住哪儿，例如『沙河口 两室 3000 以内 有电梯』」，
+ * 真后端应该交给大模型做条件抽取；假后端用规则解析把这句话变成筛选条件，
+ * 解析不出来就退回关键词匹配，还匹配不到就**返回随机推荐并标记 relaxed**，
+ * 让界面永远不是空列表（允许返回假结果，但不伪装成"精确命中"）。
+ * ========================================================================== */
+
+const CN_NUM = { 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5 }
+
+function parseSentence(text) {
+  const s = String(text)
+  const out = {}
+
+  /* 区域（把「沙河口区」匹配到「沙河口」） */
+  const region = seed.REGIONS.find((r) => s.includes(r.name.replace(/[区市县]$/, '')))
+  if (region) out.region = region.code
+
+  /* 室数：两室 / 2室 / 二居 */
+  const room = s.match(/([一二两三四五1-5])\s*(?:室|居)/)
+  if (room) {
+    const n = CN_NUM[room[1]] ?? Number(room[1])
+    if (n >= 1 && n <= 5) out.rooms = n
+  }
+
+  /* 预算：3000 以内 / 3000 以下 / 预算 3000 / 1500-2000 元 */
+  const range = s.match(/(\d{3,5})\s*[-~到]\s*(\d{3,5})/)
+  if (range) {
+    out.rentMin = Number(range[1]) * 100
+    out.rentMax = Number(range[2]) * 100
+  } else {
+    const max = s.match(/(?:预算|租金|不超过|低于)?\s*(\d{3,5})\s*(?:元|块)?\s*(?:以内|以下|之内)/)
+    if (max) out.rentMax = Number(max[1]) * 100
+    else {
+      const budget = s.match(/(?:预算|租金)\s*(\d{3,5})/)
+      if (budget) out.rentMax = Number(budget[1]) * 100
+    }
+  }
+
+  /* 硬条件 */
+  if (/电梯/.test(s)) out.hasElevator = true
+  if (/地铁/.test(s)) out.nearMetro = true
+  if (/合租|单间/.test(s)) out.rentType = 'shared'
+  else if (/整租/.test(s)) out.rentType = 'whole'
+
+  return out
+}
+
+function matchesParsed(l, p) {
+  if (!p || !Object.keys(p).length) return false
+  if (p.region && l.regionCode !== p.region) return false
+  if (p.rooms && (p.rooms >= 5 ? l.rooms < 5 : l.rooms !== p.rooms)) return false
+  if (p.rentMax != null && l.rent > p.rentMax) return false
+  if (p.rentMin != null && l.rent < p.rentMin) return false
+  if (p.hasElevator && !l.hasElevator) return false
+  if (p.nearMetro && (!l.metroLine || (l.walkMinutes ?? 99) > 10)) return false
+  if (p.rentType && l.rentType !== p.rentType) return false
+  return true
+}
+
+function describeParsed(p = {}) {
+  const parts = []
+  if (p.region) parts.push(regionName(p.region))
+  if (p.rooms) parts.push(`${p.rooms >= 5 ? '五室及以上' : `${p.rooms} 室`}`)
+  if (p.rentMax != null) parts.push(`≤${Math.round(p.rentMax / 100)} 元`)
+  if (p.rentMin != null) parts.push(`≥${Math.round(p.rentMin / 100)} 元`)
+  if (p.hasElevator) parts.push('有电梯')
+  if (p.nearMetro) parts.push('近地铁')
+  if (p.rentType === 'shared') parts.push('合租')
+  if (p.rentType === 'whole') parts.push('整租')
+  return parts.length ? '「' + parts.join(' · ') + '」' : '相近条件'
+}
+
+/**
+ * 分层放宽：条件按「软 → 硬」逐级去掉，返回第一个有结果的层级。
+ * 区域永远最后才丢，这样放宽后仍然是用户想去的片区，而不是全站随机。
+ */
+function relaxSearch(base, parsed) {
+  const tiers = [
+    { ...parsed, hasElevator: undefined, nearMetro: undefined },
+    { ...parsed, hasElevator: undefined, nearMetro: undefined, rentMax: undefined, rentMin: undefined },
+    { ...parsed, hasElevator: undefined, nearMetro: undefined, rentMax: undefined, rentMin: undefined, rentType: undefined },
+    { ...parsed, hasElevator: undefined, nearMetro: undefined, rentMax: undefined, rentMin: undefined, rentType: undefined, rooms: undefined },
+    parsed.region ? { region: parsed.region } : {},
+  ]
+  for (const tier of tiers) {
+    const hit = base.filter((l) => matchesParsed(l, tier))
+    if (hit.length) return { hit, used: tier }
+  }
+  return { hit: [], used: null }
+}
+
 const orientName = (code) => seed.ORIENTATIONS.find((o) => o.code === code)?.name ?? code ?? ''
 const decoName = (code) => seed.DECORATIONS.find((d) => d.code === code)?.name ?? code ?? ''
 
@@ -545,11 +638,36 @@ api['GET /api/v1/listings'] = async ({ q }) => {
   const sort = q.get('sort') || 'composite'
 
   let items = S.listings.filter((l) => l.status === 'online' && !l.deletedAt)
+  /* 一句话搜索：先按原文匹配；匹配不到就解析成条件放宽；还不行就返回随机推荐。
+     relaxed / relaxed_note 让前端能如实告诉用户「这不是精确命中」。 */
+  let relaxed = false
+  let relaxedNote = ''
   if (keyword) {
     const k = keyword.toLowerCase()
-    items = items.filter((l) =>
+    const direct = items.filter((l) =>
       [l.title, l.community, l.address, l.description].some((t) => String(t || '').toLowerCase().includes(k)),
     )
+    if (direct.length) {
+      items = direct
+    } else {
+      const parsed = parseSentence(keyword)
+      const hasCond = Object.keys(parsed).some((key) => parsed[key] !== undefined)
+      const { hit, used } = hasCond ? relaxSearch(items, parsed) : { hit: [], used: null }
+      if (hit.length) {
+        /* 只有真的丢了条件才算「放宽」，否则只是关键词写法不同、条件其实全部命中 */
+        const dropped = hasCond && Object.keys(parsed).some((key) => parsed[key] !== undefined && used?.[key] === undefined)
+        items = shuffle(hit).slice(0, 6)
+        relaxed = dropped
+        relaxedNote = dropped
+          ? `没有完全匹配「${keyword}」的房源，已按${describeParsed(used)}放宽展示`
+          : `已按${describeParsed(used)}为你找到 ${hit.length} 套`
+      } else {
+        /* 一条都对不上（比如「火星基地 带泳池」）：返回随机推荐，绝不返回空列表 */
+        items = shuffle(items).slice(0, 4)
+        relaxed = true
+        relaxedNote = `没有匹配「${keyword}」的房源，下面是随机推荐的几套`
+      }
+    }
   }
   if (region) {
     const codes = region.split(',').map((s) => s.trim()).filter(Boolean)
@@ -588,6 +706,9 @@ api['GET /api/v1/listings'] = async ({ q }) => {
       next_cursor: paged.next_cursor,
       total: items.length,
       stats: { total: online.length, today_new: todayNew },
+      /* 一句话搜索没有精确命中时：前端据此显示「已放宽 / 随机推荐」，不假装是精确结果 */
+      relaxed,
+      relaxed_note: relaxedNote,
     },
   }
 }

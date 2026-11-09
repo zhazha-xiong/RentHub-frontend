@@ -35,8 +35,9 @@ env:
   npm_config_prefer_offline: 'true'
   npm_config_audit: 'false'
   npm_config_fund: 'false'
-  # Playwright 浏览器的固定落盘位置（缓存路径与安装路径必须一致）
-  PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
+  # 注意：不要在这里设 PLAYWRIGHT_BROWSERS_PATH。
+  # Actions 的 env 不会展开 `~`，Playwright 会把字面量 `~/...` 按工作目录（web/）解析，
+  # 结果去 web/~/.cache/ms-playwright 找浏览器 → 所有用例报 Executable doesn't exist。
 
 jobs:
   contract-and-build:
@@ -94,12 +95,14 @@ jobs:
       # 不缓存 Chromium：实测安装 21s 里 10.8s 是 apt 装系统库（缓存不了），
       # 浏览器二进制只有 9.2s，而缓存 ~270MB 的 ms-playwright 目录压缩/还原就要 5-15s，
       # 净收益≈0。改用 GitHub runner 预装的 Google Chrome，直接省掉整步。
+      # 注意 ffmpeg 仍要装：CI 开了 video: retain-on-failure，Playwright 录屏要用它自己的 ffmpeg（约 2MB）。
       - name: 选择浏览器内核（优先 runner 预装的 Google Chrome）
         id: browser
         run: |
           if command -v google-chrome >/dev/null 2>&1; then
             google-chrome --version
             echo "PW_CHANNEL=chrome" >> "$GITHUB_ENV"
+            npx playwright install ffmpeg
           else
             echo "未发现 google-chrome，回退为安装 Playwright Chromium"
             npx playwright install --with-deps chromium

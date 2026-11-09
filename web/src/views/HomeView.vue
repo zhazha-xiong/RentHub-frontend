@@ -47,6 +47,8 @@ const total = ref(0)
 /** 全站在架数与今日新上：由后端 stats 给（v2 右侧那行 note） */
 const onlineTotal = ref(0)
 const todayNew = ref(0)
+/** 一句话搜索没有精确命中时后端给的说明（空字符串表示精确命中） */
+const relaxedNote = ref('')
 const loading = ref(false)
 const loaded = ref(false)
 const favorited = ref<Set<number>>(new Set())
@@ -116,6 +118,7 @@ async function load(reset = true) {
       const stats = (data as { stats?: { total?: number; today_new?: number } }).stats
       onlineTotal.value = stats?.total ?? total.value
       todayNew.value = stats?.today_new ?? 0
+      relaxedNote.value = (data as { relaxed_note?: string }).relaxed_note ?? ''
       loaded.value = true
       window.scrollTo({ top: 0 })
     }
@@ -351,6 +354,9 @@ onBeforeUnmount(() => {
       </div>
       <p class="note">{{ onlineTotal }} 套在架 · 今日新上 {{ todayNew }} 套</p>
     </div>
+
+    <!-- 一句话搜索没精确命中时，把后端给的说明原样显示出来（不假装精确结果） -->
+    <p v-if="relaxedNote" class="hint" style="margin: 0 0 12px">{{ relaxedNote }}</p>
 
     <section class="masonry" aria-label="房源列表">
       <template v-if="loaded">
