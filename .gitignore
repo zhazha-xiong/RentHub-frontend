@@ -1,6 +1,9 @@
 # ============================================================
-# 栖居 RentHub · frontend-vue
-# 前端项目通用忽略清单（Node / Vue / 静态站点）
+# RentHub-frontend
+#   web/                新前端（Vite + TS + Ant Design Vue 4）
+#   legacy/v1-spa/      第一版 SPA 原型（美术/交互参照）
+#   legacy/v2-static/   最早的静态站（美术参照）
+#   docs/               设计评审、索引方案、契约补充说明
 # ============================================================
 
 # ---------- 依赖 ----------
@@ -10,17 +13,17 @@ node_modules/
 .yarn/
 .yarnrc.yml
 
-# ---------- 构建产物（本项目零构建，保留给将来接打包工具） ----------
+# ---------- 构建与测试产物 ----------
 dist/
 dist-ssr/
 build/
 .output/
-.nuxt/
 .vite/
 .parcel-cache/
-.temp/
-.tmp/
 coverage/
+test-results/
+playwright-report/
+blob-report/
 *.local
 
 # ---------- 日志 ----------
@@ -30,11 +33,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-# ---------- 运行时数据（会话 / 收藏 / 订单 / 草稿 / 高德图片缓存） ----------
+# ---------- 运行态数据（旧版服务的会话/收藏/订单/草稿、高德缓存） ----------
 runtime/
 cache/
+web/mock/.data/
 
 # ---------- 包管理器缓存 ----------
 .npm-cache/
@@ -42,14 +45,14 @@ cache/
 .eslintcache
 .stylelintcache
 
-# ---------- 环境变量与本地密钥 ----------
+# ---------- 环境变量与密钥 ----------
 .env
 .env.*
 !.env.example
 config.local.json
 config.server.local.json
 
-# ---------- 编辑器 / 操作系统 ----------
+# ---------- 编辑器 / 系统 ----------
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json

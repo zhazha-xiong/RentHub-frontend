@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>订单管理 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="merchant-listings.html">房源管理</a><a href="merchant-orders.html" aria-current="page">订单管理</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">星</span><span class="uname">星辰公寓</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="merchant-listings.html">我的房源<span class="badge">5</span></a><a href="merchant-orders.html" aria-current="page">订单管理<span class="badge">2</span></a><a href="merchant-profile.html">商家信息与资质</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="index.html">租客端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <h1>订单管理</h1>
+      
+      <nav class="tabs">
+        <a href="#" class="on">待确认 <span class="n">2</span></a>
+        <a href="#">已确认 <span class="n">1</span></a>
+        <a href="#">已完成 <span class="n">8</span></a>
+        <a href="#">已拒绝 <span class="n">0</span></a>
+      </nav>
+      <table class="table">
+        <thead><tr><th>订单与房源</th><th>租客</th><th>租期</th><th class="num">金额</th><th>提交时间</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="t"><img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt=""><div><p>RH20261104001</p><p class="m">星海广场 · 2室1厅</p></div></div></td>
+            <td>王俊锡<p class="m">138 **** 6621</p></td>
+            <td>12 个月<p class="m">2026-12-01 入住</p></td>
+            <td class="num">41,760</td>
+            <td>今天 10:22</td>
+            <td><button class="btn sm">接单</button> <button class="btn ghost sm">拒单</button></td>
+          </tr>
+          <tr>
+            <td><div class="t"><img src="../assets/kitchen-interior-of-apartment-in-brisbane-2025.jpg" alt=""><div><p>RH20261104002</p><p class="m">西安路 · 2室1厅</p></div></div></td>
+            <td>李梦<p class="m">139 **** 2180</p></td>
+            <td>6 个月<p class="m">2026-11-15 入住</p></td>
+            <td class="num">16,695</td>
+            <td>今天 09:05</td>
+            <td><button class="btn sm">接单</button> <button class="btn ghost sm">拒单</button></td>
+          </tr>
+          <tr>
+            <td><div class="t"><img src="../assets/living-room-in-apartment-of-condominio-do.jpg" alt=""><div><p>RH20261028007</p><p class="m">软件园 · 2室2厅</p></div></div></td>
+            <td>张三<p class="m">137 **** 9042</p></td>
+            <td>6 个月<p class="m">2026-11-20 入住</p></td>
+            <td class="num">28,905</td>
+            <td>10-28 19:40</td>
+            <td><button class="btn ghost sm">标记完成</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="hint">接单后房源自动置为「已出租」；拒单需填写原因，系统会释放房源并生成退款流水。</p>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

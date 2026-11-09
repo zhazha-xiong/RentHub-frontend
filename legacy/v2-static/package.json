@@ -1,0 +1,19 @@
+{
+  "name": "renthub-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "栖居 RentHub 多页前端（原 v2）+ assets 图片 + 汇总的第三方运行时（vendor/）",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node server.mjs",
+    "check": "node --check server.mjs && node --check scripts/build.mjs && node --check public/app.js"
+  },
+  "dependencies": {
+    "vue": "3.5.41",
+    "vue-router": "4.6.4",
+    "ant-design-vue": "4.2.6",
+    "dayjs": "1.11.23"
+  },
+  "vendorNote": "vendor/ 是浏览器可直接用的全局构建/UMD 产物；不需要 npm install，删掉 node_modules 也不影响运行"
+}

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>房源管理 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="merchant-listings.html" aria-current="page">房源管理</a><a href="merchant-orders.html">订单管理</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">星</span><span class="uname">星辰公寓</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="merchant-listings.html" aria-current="page">我的房源<span class="badge">5</span></a><a href="merchant-orders.html">订单管理<span class="badge">2</span></a><a href="merchant-profile.html">商家信息与资质</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="index.html">租客端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <div class="head">
+        <div><h1>房源管理</h1></div>
+        <div class="right"><a class="btn" href="merchant-edit.html" style="display:inline-flex;align-items:center;text-decoration:none">新建房源</a></div>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" placeholder="搜索房源标题或小区" aria-label="搜索房源">
+        <select class="select-sm" aria-label="状态筛选"><option>全部状态</option><option>在架</option><option>已出租</option><option>已下架</option></select>
+        <span class="grow"></span>
+        <span class="note">5 套 · 在架 3 · 已出租 1 · 已下架 1</span>
+      </div>
+
+      <table class="table">
+        <thead><tr><th>房源</th><th>状态</th><th class="num">租金</th><th class="num">浏览</th><th class="num">收藏</th><th>更新</th><th>操作</th></tr></thead>
+        <tbody>
+
+        <tr>
+          <td><div class="t"><img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt=""><div><p>星海广场 · 2室1厅</p><p class="m">沙河口 · 86㎡ · 南北</p></div></div></td>
+          <td><span class="tag ">在架</span></td>
+          <td class="num">3,200 元/月</td>
+          <td class="num">188</td>
+          <td class="num">12</td>
+          <td>3 天前</td>
+          <td><button class="btn ghost sm">下架</button></td>
+        </tr>
+        <tr>
+          <td><div class="t"><img src="../assets/kitchen-interior-of-apartment-in-brisbane-2025.jpg" alt=""><div><p>西安路 · 2室1厅</p><p class="m">沙河口 · 78㎡ · 朝南</p></div></div></td>
+          <td><span class="tag ">在架</span></td>
+          <td class="num">2,650 元/月</td>
+          <td class="num">142</td>
+          <td class="num">9</td>
+          <td>今天</td>
+          <td><button class="btn ghost sm">下架</button></td>
+        </tr>
+        <tr>
+          <td><div class="t"><img src="../assets/bedroom-interior-of-apartment-in-brisbane-2025.jpg" alt=""><div><p>和平广场 · 1室1厅</p><p class="m">沙河口 · 52㎡ · 朝南</p></div></div></td>
+          <td><span class="tag ">在架</span></td>
+          <td class="num">1,850 元/月</td>
+          <td class="num">96</td>
+          <td class="num">5</td>
+          <td>5 天前</td>
+          <td><button class="btn ghost sm">下架</button></td>
+        </tr>
+        <tr>
+          <td><div class="t"><img src="../assets/living-room-in-apartment-of-condominio-do.jpg" alt=""><div><p>软件园 · 2室2厅</p><p class="m">高新园区 · 98㎡ · 东南</p></div></div></td>
+          <td><span class="tag hue">已出租</span></td>
+          <td class="num">4,100 元/月</td>
+          <td class="num">231</td>
+          <td class="num">18</td>
+          <td>8 天前</td>
+          <td><button class="btn ghost sm">查看订单</button></td>
+        </tr>
+        <tr>
+          <td><div class="t"><img src="../assets/the-living-room-that-needs-houseplants.jpg" alt=""><div><p>人民广场 · 3室2厅</p><p class="m">西岗 · 128㎡ · 南北</p></div></div></td>
+          <td><span class="tag plain">已下架</span></td>
+          <td class="num">5,600 元/月</td>
+          <td class="num">45</td>
+          <td class="num">2</td>
+          <td>12 天前</td>
+          <td><button class="btn ghost sm">上架</button></td>
+        </tr>
+        </tbody>
+      </table>
+      <p class="hint">房源处于「已出租」时不能改价，也不允许删除；只有下架状态可以编辑全部字段。</p>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

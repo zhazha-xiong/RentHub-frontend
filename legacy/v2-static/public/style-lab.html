@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RentHub · 组件库风格对比</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f4f4f3;color:#222;
+    font-family:"IBM Plex Sans",Inter,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.01em}
+  .lead{margin:0 0 28px;color:#666;font-size:14px;max-width:70ch}
+  .lab{background:#fff;border:1px solid #e2e0dc;border-radius:12px;padding:20px;margin:0 0 20px;display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:12px 32px;align-items:start}
+  .lab-hd{display:flex;align-items:baseline;gap:12px;margin:0 0 10px;grid-column:1/-1}
+  .lab-hd b{font-size:15px}
+  .lab-hd span{color:#777;font-size:13px}
+  .lab-note{margin:10px 0 0;font-size:13px;color:#777;grid-column:1/-1}
+
+  /* 公共结构 */
+  .row{display:flex;align-items:center;gap:10px;padding:8px 0;flex-wrap:wrap}
+  .lb{width:44px;color:#888;font-size:13px;flex:none}
+  .chip{font-size:14px;padding:5px 10px;border:0;background:none;cursor:pointer;border-radius:4px;color:#555}
+  .sort{font-size:14px;padding:6px 10px;border:0;background:none;cursor:pointer;color:#666}
+  .card-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;border-radius:6px 6px 0 0}
+  .card-title{font-size:15px;font-weight:600;margin:10px 0 2px}
+  .card-meta{font-size:13px;color:#888;margin:0}
+  .card-price{margin:8px 0 0;font-size:13px;color:#888}
+  .card-price b{font-size:20px;color:#222}
+  .card{border:1px solid #eee;border-radius:8px;overflow:hidden;margin:0;grid-column:2;grid-row:2}
+
+  /* A · Ant Design 5 */
+  .a{--p:#1677ff;--line:#f0f0f0;--soft:#e6f4ff}
+  .a .chip{border-radius:4px;color:#555}
+  .a .chip.on{background:var(--soft);color:var(--p);font-weight:500}
+  .a .sort.on{color:var(--p);font-weight:500;background:none}
+  .a .card{border-radius:8px;border-color:var(--line)}
+  .a .card-title{font-size:15px}
+  .a .card-price b{font-size:20px;color:#222}
+
+  /* B · Arco Design */
+  .b{--p:#165dff;--line:#e5e6eb;--soft:#f2f3f5}
+  .b .chip{border-radius:2px;color:#4e5969}
+  .b .chip.on{background:var(--soft);color:var(--p);font-weight:500}
+  .b .sort.on{color:var(--p);font-weight:500;border-bottom:2px solid var(--p);border-radius:0;padding-bottom:4px}
+  .b .card{border-radius:4px;border-color:var(--line)}
+  .b .card-title{font-size:14px}
+
+  /* C · Element Plus */
+  .c{--p:#409eff;--line:#ebeef5;--soft:#ecf5ff}
+  .c .chip{border-radius:4px;color:#606266}
+  .c .chip.on{background:var(--soft);color:#1f6fd0;font-weight:500;border:1px solid #d9ecff}
+  .c .sort.on{color:#1f6fd0;background:var(--soft);font-weight:500}
+  .c .card{border-radius:4px;border-color:var(--line)}
+  .c .card-title{font-size:14px}
+
+  /* D · 中性 / shadcn */
+  .d{--p:#18181b;--line:#e4e4e7;--soft:#f4f4f5}
+  .d .chip{border-radius:6px;color:#52525b}
+  .d .chip.on{background:var(--p);color:#fff;font-weight:500}
+  .d .sort.on{background:var(--soft);color:var(--p);font-weight:500;border-radius:6px}
+  .d .card{border-radius:8px;border-color:var(--line)}
+  .d .card-price b{font-size:20px;color:#18181b}
+
+  /* E · 当前版本（莫兰迪） */
+  .e{--p:#5f6f68;--line:#e4e1da;--soft:#e8eee9}
+  .e .chip{border-radius:4px;color:#6f6861}
+  .e .chip.on{background:var(--soft);color:#3c4a43;font-weight:600}
+  .e .sort.on{background:#f1f0ec;color:#2b2926;font-weight:600}
+  .e .card{border-radius:8px;border-color:var(--line)}
+
+  .swatches{display:flex;gap:6px;margin-left:auto}
+  .sw{width:18px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>同一排筛选，四种组件库的处理方式</h1>
+  <p class="lead">内容完全一样，只改“选中态”的做法、圆角和描边。现在的“淡绿底 + 深绿字”是最后一种（E）。你可以直接说 A/B/C/D，或者说“要 A 的底 + D 的圆角”这种组合。</p>
+
+  <section class="lab a">
+    <div class="lab-hd"><b>A · Ant Design 5</b><span>蓝色系，选中＝浅蓝底＋蓝字；8px 圆角；1px 浅灰描边</span>
+      <div class="swatches"><i class="sw" style="background:#1677ff"></i><i class="sw" style="background:#e6f4ff"></i><i class="sw" style="background:#f0f0f0"></i></div>
+    </div>
+    <div class="rows">
+    <div class="row"><span class="lb">位置</span>
+      <button class="chip on">全部</button><button class="chip">沙河口</button><button class="chip">中山</button><button class="chip">西岗</button><button class="chip">甘井子</button>
+    </div>
+    <div class="row"><span class="lb">租金</span>
+      <button class="chip">不限</button><button class="chip on">2000–3000</button><button class="chip">3000–5000</button><button class="chip">5000 以上</button>
+    </div>
+    <div class="row"><span class="lb">排序</span>
+      <button class="sort on">综合</button><button class="sort">最新</button><button class="sort">价格 ↑</button><button class="sort">价格 ↓</button>
+    </div>
+    </div>
+    <div class="card">
+      <img class="card-img" src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="">
+      <div style="padding:12px 14px 14px">
+        <p class="card-title">星海广场 · 2室1厅</p>
+        <p class="card-meta">沙河口 · 86㎡ · 南北 · 精装</p>
+        <p class="card-price"><b>3,200</b> 元/月</p>
+      </div>
+    </div>
+    <p class="lab-note">最“像真实产品”，因为几乎所有人都用过 AntD；代价是蓝得有点企业后台。</p>
+  </section>
+
+  <section class="lab b">
+    <div class="lab-hd"><b>B · Arco Design</b><span>选中＝浅灰底＋蓝字，排序用蓝色下划线；2px 圆角；克制</span>
+      <div class="swatches"><i class="sw" style="background:#165dff"></i><i class="sw" style="background:#f2f3f5"></i><i class="sw" style="background:#e5e6eb"></i></div>
+    </div>
+    <div class="rows">
+    <div class="row"><span class="lb">位置</span>
+      <button class="chip on">全部</button><button class="chip">沙河口</button><button class="chip">中山</button><button class="chip">西岗</button><button class="chip">甘井子</button>
+    </div>
+    <div class="row"><span class="lb">租金</span>
+      <button class="chip">不限</button><button class="chip on">2000–3000</button><button class="chip">3000–5000</button><button class="chip">5000 以上</button>
+    </div>
+    <div class="row"><span class="lb">排序</span>
+      <button class="sort on">综合</button><button class="sort">最新</button><button class="sort">价格 ↑</button><button class="sort">价格 ↓</button>
+    </div>
+    </div>
+    <div class="card">
+      <img class="card-img" src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="">
+      <div style="padding:12px 14px 14px">
+        <p class="card-title">星海广场 · 2室1厅</p>
+        <p class="card-meta">沙河口 · 86㎡ · 南北 · 精装</p>
+        <p class="card-price"><b>3,200</b> 元/月</p>
+      </div>
+    </div>
+    <p class="lab-note">比 A 更轻、更“内容优先”，直角让信息看起来更硬朗。</p>
+  </section>
+
+  <section class="lab c">
+    <div class="lab-hd"><b>C · Element Plus</b><span>选中＝浅蓝底＋蓝字＋1px 蓝边框；4px 圆角</span>
+      <div class="swatches"><i class="sw" style="background:#409eff"></i><i class="sw" style="background:#ecf5ff"></i><i class="sw" style="background:#d9ecff"></i></div>
+    </div>
+    <div class="rows">
+    <div class="row"><span class="lb">位置</span>
+      <button class="chip on">全部</button><button class="chip">沙河口</button><button class="chip">中山</button><button class="chip">西岗</button><button class="chip">甘井子</button>
+    </div>
+    <div class="row"><span class="lb">租金</span>
+      <button class="chip">不限</button><button class="chip on">2000–3000</button><button class="chip">3000–5000</button><button class="chip">5000 以上</button>
+    </div>
+    <div class="row"><span class="lb">排序</span>
+      <button class="sort on">综合</button><button class="sort">最新</button><button class="sort">价格 ↑</button><button class="sort">价格 ↓</button>
+    </div>
+    </div>
+    <div class="card">
+      <img class="card-img" src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="">
+      <div style="padding:12px 14px 14px">
+        <p class="card-title">星海广场 · 2室1厅</p>
+        <p class="card-meta">沙河口 · 86㎡ · 南北 · 精装</p>
+        <p class="card-price"><b>3,200</b> 元/月</p>
+      </div>
+    </div>
+    <p class="lab-note">最省事（Vue 生态直接可用），但和别的课设撞脸概率最高。</p>
+  </section>
+
+  <section class="lab d">
+    <div class="lab-hd"><b>D · 中性（shadcn 那一路）</b><span>几乎没有彩色：选中＝近黑实心；6px 圆角；灰阶描边</span>
+      <div class="swatches"><i class="sw" style="background:#18181b"></i><i class="sw" style="background:#f4f4f5"></i><i class="sw" style="background:#e4e4e7"></i></div>
+    </div>
+    <div class="rows">
+    <div class="row"><span class="lb">位置</span>
+      <button class="chip on">全部</button><button class="chip">沙河口</button><button class="chip">中山</button><button class="chip">西岗</button><button class="chip">甘井子</button>
+    </div>
+    <div class="row"><span class="lb">租金</span>
+      <button class="chip">不限</button><button class="chip on">2000–3000</button><button class="chip">3000–5000</button><button class="chip">5000 以上</button>
+    </div>
+    <div class="row"><span class="lb">排序</span>
+      <button class="sort on">综合</button><button class="sort">最新</button><button class="sort">价格 ↑</button><button class="sort">价格 ↓</button>
+    </div>
+    </div>
+    <div class="card">
+      <img class="card-img" src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="">
+      <div style="padding:12px 14px 14px">
+        <p class="card-title">星海广场 · 2室1厅</p>
+        <p class="card-meta">沙河口 · 86㎡ · 南北 · 精装</p>
+        <p class="card-price"><b>3,200</b> 元/月</p>
+      </div>
+    </div>
+    <p class="lab-note">最不像“模板生成”，因为几乎没有装饰；但实心黑块会比较抢眼，房源照片弱的时候容易显得冷。</p>
+  </section>
+
+  <section class="lab e">
+    <div class="lab-hd"><b>E · 当前版本（莫兰迪）</b><span>选中＝淡灰绿底＋深绿字；4/8px 圆角</span>
+      <div class="swatches"><i class="sw" style="background:#5f6f68"></i><i class="sw" style="background:#e8eee9"></i><i class="sw" style="background:#e4e1da"></i></div>
+    </div>
+    <div class="rows">
+    <div class="row"><span class="lb">位置</span>
+      <button class="chip on">全部</button><button class="chip">沙河口</button><button class="chip">中山</button><button class="chip">西岗</button><button class="chip">甘井子</button>
+    </div>
+    <div class="row"><span class="lb">租金</span>
+      <button class="chip">不限</button><button class="chip on">2000–3000</button><button class="chip">3000–5000</button><button class="chip">5000 以上</button>
+    </div>
+    <div class="row"><span class="lb">排序</span>
+      <button class="sort on">综合</button><button class="sort">最新</button><button class="sort">价格 ↑</button><button class="sort">价格 ↓</button>
+    </div>
+    </div>
+    <div class="card">
+      <img class="card-img" src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="">
+      <div style="padding:12px 14px 14px">
+        <p class="card-title">星海广场 · 2室1厅</p>
+        <p class="card-meta">沙河口 · 86㎡ · 南北 · 精装</p>
+        <p class="card-price"><b>3,200</b> 元/月</p>
+      </div>
+    </div>
+    <p class="lab-note">就是你觉得“AI 味重”的那一版：低饱和绿 + 淡底 pill，是这两年模型最常生成的样子。</p>
+  </section>
+</div>
+</body>
+</html>

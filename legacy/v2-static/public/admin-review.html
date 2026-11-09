@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>资质审核 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="admin-review.html" aria-current="page">资质审核</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">管</span><span class="uname">管理员</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="admin-review.html" aria-current="page">资质审核<span class="badge">2</span></a><a href="#">用户管理</a><a href="#">房源管理</a><a href="#">订单查看</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="index.html">租客端</a><a role="menuitem" href="merchant-listings.html">商家端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <h1>资质审核</h1>
+      
+      <div class="split">
+        <div>
+          <table class="table">
+            <thead><tr><th>商家</th><th>提交时间</th><th>材料</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr aria-current="true" style="background:#fafaf9">
+                <td><p>星辰公寓</p><p class="m">沙河口 · 12 套在架申请</p></td>
+                <td>今天 09:40</td>
+                <td>2 张</td>
+                <td><span class="tag warn">待审核</span></td>
+              </tr>
+              <tr>
+                <td><p>海滨小屋</p><p class="m">中山 · 3 套在架申请</p></td>
+                <td>昨天 16:12</td>
+                <td>3 张</td>
+                <td><span class="tag warn">待审核</span></td>
+              </tr>
+              <tr>
+                <td><p>高新区合租</p><p class="m">高新园区 · 6 套</p></td>
+                <td>10-30 11:20</td>
+                <td>1 张</td>
+                <td><span class="tag">已通过</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <aside class="review-panel">
+          <h2>星辰公寓</h2>
+          <p class="muted-line">营业执照 · 法人身份证 · 提交于 2026-11-04 09:40</p>
+          <div class="shots"><img src="../assets/apartment-building-in-china.jpg" alt="营业执照材料，演示图片"><img src="../assets/new-orleans-french-quarter-apartment-living-room.jpg" alt="经营场所材料，演示图片"></div>
+          <div class="field"><label for="reason">驳回原因（通过时可不填）</label><textarea id="reason" rows="3" placeholder="不少于 10 字，说明需要补正的材料"></textarea></div>
+          <div class="actions" style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn" style="flex:1">通过并解锁上架</button>
+            <button class="btn ghost" style="flex:1">驳回</button>
+          </div>
+          <p class="hint">通过后商家立即可以上架房源，并会收到一条站内通知。</p>
+        </aside>
+      </div>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的订单 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="index.html">找房</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">肖</span><span class="uname">肖福晟</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="favorites.html">我的收藏<span class="badge">6</span></a><a href="orders.html" aria-current="page">我的订单<span class="badge">2</span></a><a href="messages.html">通知中心<span class="badge">3</span></a><a href="profile.html">个人信息</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="merchant-listings.html">商家端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <h1>我的订单</h1>
+      <nav class="tabs">
+        <a href="#" class="on">全部 <span class="n">5</span></a>
+        <a href="#">待确认 <span class="n">1</span></a>
+        <a href="#">已确认 <span class="n">1</span></a>
+        <a href="#">已完成 <span class="n">2</span></a>
+        <a href="#">已取消 <span class="n">1</span></a>
+      </nav>
+
+      <article class="order">
+        <div class="top">
+          <span>订单号 RH20261104001</span><span>2026-11-04 10:22</span>
+          <span class="st"><span class="tag warn">待商家确认</span></span>
+        </div>
+        <div class="body">
+          <img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="">
+          <div>
+            <p class="t">星海广场 · 2室1厅</p>
+            <p class="m">沙河口 · 86㎡ · 南北</p>
+            <p class="m">租期 12 个月 · 入住 2026-12-01</p>
+          </div>
+          <div class="amt"><b>41,760</b><p>含押金 3,200</p></div>
+        </div>
+        <div class="foot"><button class="btn ghost sm">取消订单</button><button class="btn sm">联系商家</button></div>
+      </article>
+
+      <article class="order">
+        <div class="top">
+          <span>订单号 RH20261028007</span><span>2026-10-28 19:40</span>
+          <span class="st"><span class="tag ">已确认</span></span>
+        </div>
+        <div class="body">
+          <img src="../assets/living-room-in-apartment-of-condominio-do.jpg" alt="">
+          <div>
+            <p class="t">软件园 · 2室2厅</p>
+            <p class="m">高新园区 · 98㎡ · 东南</p>
+            <p class="m">租期 6 个月 · 入住 2026-11-20</p>
+          </div>
+          <div class="amt"><b>28,905</b><p>含押金 4,100</p></div>
+        </div>
+        <div class="foot"><button class="btn ghost sm" disabled>取消订单</button><button class="btn sm">联系商家</button></div>
+      </article>
+
+      <article class="order">
+        <div class="top">
+          <span>订单号 RH20260715003</span><span>2026-07-15 09:12</span>
+          <span class="st"><span class="tag plain">已完成</span></span>
+        </div>
+        <div class="body">
+          <img src="../assets/kitchen-interior-of-apartment-in-brisbane-2025.jpg" alt="">
+          <div>
+            <p class="t">西安路 · 2室1厅</p>
+            <p class="m">沙河口 · 78㎡ · 朝南</p>
+            <p class="m">租期 12 个月 · 入住 2026-08-01</p>
+          </div>
+          <div class="amt"><b>34,583</b><p>含押金 2,650</p></div>
+        </div>
+        <div class="foot"><button class="btn ghost sm">查看详情</button></div>
+      </article>
+
+      <article class="order">
+        <div class="top">
+          <span>订单号 RH20260620011</span><span>2026-06-20 15:03</span>
+          <span class="st"><span class="tag plain">已取消</span></span>
+        </div>
+        <div class="body">
+          <img src="../assets/bedroom-interior-of-apartment-in-brisbane-2025.jpg" alt="">
+          <div>
+            <p class="t">和平广场 · 1室1厅</p>
+            <p class="m">沙河口 · 52㎡ · 朝南</p>
+            <p class="m">租期 3 个月 · 入住 2026-07-01</p>
+          </div>
+          <div class="amt"><b>6,205</b><p>含押金 1,850</p></div>
+        </div>
+        <div class="foot"><button class="btn ghost sm">退款记录</button></div>
+      </article>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

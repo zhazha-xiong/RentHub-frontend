@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的收藏 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="index.html">找房</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">肖</span><span class="uname">肖福晟</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="favorites.html" aria-current="page">我的收藏<span class="badge">6</span></a><a href="orders.html">我的订单<span class="badge">2</span></a><a href="messages.html">通知中心<span class="badge">3</span></a><a href="profile.html">个人信息</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="merchant-listings.html">商家端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <h1>我的收藏</h1>
+      
+      <div class="sortbar">
+        <div class="sorts">
+          <button class="sort is-on" aria-pressed="true">最近收藏</button>
+          <button class="sort">价格从低到高</button>
+        </div>
+        <p class="note">共 6 套</p>
+      </div>
+      <section class="masonry">
+      <a class="card" href="detail.html">
+        <div class="thumb" style="--ar:16/9">
+          <img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="房源室内实拍，教学演示图片" loading="lazy">
+          <button class="fav" aria-label="收藏 星海广场 · 2室1厅">收藏</button>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">星海广场 · 2室1厅</h3>
+          <p class="card-meta">沙河口 · 86㎡ · 南北 · 14/26层 · 精装</p>
+          <p class="card-tags"><span class="tag">近地铁</span><span class="tag">有电梯</span></p>
+          <p class="card-foot"><span class="when">3 天前上架</span><span class="price"><b>3,200</b> 元/月</span></p>
+        </div>
+      </a>
+      <a class="card" href="detail.html">
+        <div class="thumb" style="--ar:2/3">
+          <img src="../assets/bedroom-interior-of-apartment-in-brisbane-2025.jpg" alt="房源室内实拍，教学演示图片" loading="lazy">
+          <button class="fav" aria-label="收藏 和平广场 · 1室1厅">收藏</button>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">和平广场 · 1室1厅</h3>
+          <p class="card-meta">沙河口 · 52㎡ · 朝南 · 6/18层 · 简装</p>
+          <p class="card-tags"><span class="tag">有电梯</span></p>
+          <p class="card-foot"><span class="when">5 天前上架</span><span class="price"><b>1,850</b> 元/月</span></p>
+        </div>
+      </a>
+      <a class="card" href="detail.html">
+        <div class="thumb" style="--ar:1/1">
+          <img src="../assets/living-room-in-apartment-of-condominio-do.jpg" alt="房源室内实拍，教学演示图片" loading="lazy">
+          <button class="fav" aria-label="收藏 软件园 · 2室2厅">收藏</button>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">软件园 · 2室2厅</h3>
+          <p class="card-meta">高新园区 · 98㎡ · 东南 · 9/32层 · 精装</p>
+          <p class="card-tags"><span class="tag">近地铁</span><span class="tag">有电梯</span></p>
+          <p class="card-foot"><span class="when">今天上架</span><span class="price"><b>4,100</b> 元/月</span></p>
+        </div>
+      </a>
+      <a class="card" href="detail.html">
+        <div class="thumb" style="--ar:3/4">
+          <img src="../assets/bedroom-interior-of-apartment-in-brisbane-2025-2.jpg" alt="房源室内实拍，教学演示图片" loading="lazy">
+          <button class="fav" aria-label="收藏 青泥洼桥 · 单间">收藏</button>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">青泥洼桥 · 单间</h3>
+          <p class="card-meta">中山 · 38㎡ · 朝东 · 4/7层 · 简装</p>
+          <p class="card-tags"><span class="tag">近地铁</span><span class="tag">合租</span></p>
+          <p class="card-foot"><span class="when">昨天上架</span><span class="price"><b>1,200</b> 元/月</span></p>
+        </div>
+      </a>
+      <a class="card" href="detail.html">
+        <div class="thumb" style="--ar:3/2">
+          <img src="../assets/the-living-room-that-needs-houseplants.jpg" alt="房源室内实拍，教学演示图片" loading="lazy">
+          <button class="fav" aria-label="收藏 人民广场 · 3室2厅">收藏</button>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">人民广场 · 3室2厅</h3>
+          <p class="card-meta">西岗 · 128㎡ · 南北 · 3/6层 · 豪装</p>
+          <p class="card-tags"><span class="tag">有电梯</span></p>
+          <p class="card-foot"><span class="when">8 天前上架</span><span class="price"><b>5,600</b> 元/月</span></p>
+        </div>
+      </a>
+      <a class="card" href="detail.html">
+        <div class="thumb" style="--ar:4/3">
+          <img src="../assets/kitchen-interior-of-apartment-in-brisbane-2025.jpg" alt="房源室内实拍，教学演示图片" loading="lazy">
+          <button class="fav" aria-label="收藏 西安路 · 2室1厅">收藏</button>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">西安路 · 2室1厅</h3>
+          <p class="card-meta">沙河口 · 78㎡ · 朝南 · 12/24层 · 精装</p>
+          <p class="card-tags"><span class="tag">近地铁</span><span class="tag">有电梯</span></p>
+          <p class="card-foot"><span class="when">今天上架</span><span class="price"><b>2,650</b> 元/月</span></p>
+        </div>
+      </a></section>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

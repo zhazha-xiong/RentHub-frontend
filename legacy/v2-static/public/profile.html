@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>个人信息 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="index.html">找房</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">肖</span><span class="uname">肖福晟</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="favorites.html">我的收藏<span class="badge">6</span></a><a href="orders.html">我的订单<span class="badge">2</span></a><a href="messages.html">通知中心<span class="badge">3</span></a><a href="profile.html" aria-current="page">个人信息</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="merchant-listings.html">商家端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page narrow">
+
+      <h1>个人信息</h1>
+      <div class="form">
+        <div>
+          <div class="fieldset">
+            <h2>账号</h2>
+            <div class="grid2">
+              <div class="field"><label for="nick">昵称</label><input type="text" id="nick" value="肖福晟"></div>
+              <div class="field"><label for="acct">账号</label><input type="text" id="acct" value="xiaofs" disabled></div>
+              <div class="field"><label for="phone2">手机号</label><input type="text" id="phone2" value="138 **** 6621" disabled></div>
+              <div class="field"><label for="reg">注册时间</label><input type="text" id="reg" value="2026-09-12" disabled></div>
+            </div>
+          </div>
+          <div class="fieldset">
+            <h2>登录密码</h2>
+            <div class="grid2">
+              <div class="field"><label for="old">当前密码</label><input type="password" id="old" value="········"></div>
+              <div class="field"><label for="new">新密码</label><input type="password" id="new" placeholder="8~20 位，含字母与数字"></div>
+            </div>
+            <p class="hint">修改后其它设备上的登录会自动失效。</p>
+          </div>
+        </div>
+        <aside class="summary">
+          <h2>资料完整度</h2>
+          <div class="row"><span>昵称</span><b>已填写</b></div>
+          <div class="row"><span>头像</span><b>未上传</b></div>
+          <div class="row"><span>实名信息</span><b>未填写</b></div>
+          <div class="total"><span>完整度</span><b>40%</b></div>
+          <button class="btn">保存修改</button>
+          <p class="fine">演示环境不校验真实身份信息。</p>
+        </aside>
+      </div>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

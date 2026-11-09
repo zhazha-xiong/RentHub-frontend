@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="auth">
+    <aside class="auth-art">
+      <img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="房源实拍，演示图片">
+      <div class="auth-art-in">
+        <a class="brand" href="login.html">栖居<span class="brand-en">RentHub</span></a>
+        <p class="tagline">在大连，找到下一年住的地方</p>
+      </div>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-box">
+
+        <h1>登录</h1>
+
+        <div class="role-switch" role="tablist" aria-label="登录入口">
+          <button class="on" role="tab" aria-selected="true">租客</button>
+          <button role="tab" aria-selected="false">商家</button>
+          <button role="tab" aria-selected="false">管理员</button>
+        </div>
+
+        <div class="alert" id="alert" hidden></div>
+
+        <form class="auth-fields" onsubmit="return false">
+          <div class="field"><label for="acct">账号</label>
+            <input type="text" id="acct" placeholder="4~20 位字母或数字" autocomplete="username"></div>
+          <div class="field"><label for="pwd">密码</label>
+            <input type="password" id="pwd" placeholder="8~20 位，含字母与数字" autocomplete="current-password"></div>
+          <div class="auth-row">
+            <label class="check"><input type="checkbox"> 7 天内记住我</label>
+            <a href="#">忘记密码？</a>
+          </div>
+          <button class="btn auth-btn" type="submit">登录</button>
+        </form>
+
+        <p class="auth-alt">还没有账号？<a href="register.html">立即注册</a></p>
+        <p class="demo-states">原型演示：<a href="#" data-state="badpwd">密码错误</a><span>·</span><a href="#" data-state="wrongrole">入口不符</a><span>·</span><a href="#" data-state="locked">账号锁定</a></p>
+      </div>
+      <p class="auth-foot">栖居 RentHub · 软件工程综合实训 · 全部数据为教学演示</p>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

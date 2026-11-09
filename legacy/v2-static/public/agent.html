@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 找房 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="index.html" aria-current="page">找房</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">肖</span><span class="uname">肖福晟</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="favorites.html">我的收藏<span class="badge">6</span></a><a href="orders.html">我的订单<span class="badge">2</span></a><a href="messages.html">通知中心<span class="badge">3</span></a><a href="profile.html">个人信息</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="merchant-listings.html">商家端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <div class="crumbs"><a href="index.html">找房</a><span>/</span>AI 找房</div>
+      <div class="head">
+        <div>
+          <h1>AI 找房</h1>
+        </div>
+        <div class="right"><a class="btn ghost" href="index.html" style="display:inline-flex;align-items:center;text-decoration:none">回到列表</a></div>
+      </div>
+
+      <div class="chatwrap">
+        <div class="chat">
+          <div class="thread" id="thread">
+            <div class="msg user">
+              <p class="who"><span class="ava-u">肖</span></p>
+              <div class="bubble">沙河口 两室 3000 以内 有电梯</div>
+            </div>
+
+            <div class="msg agent">
+              <p class="who"><span class="ava-a">助</span>找房助手</p>
+              <div class="bubble">
+                我识别到三个条件：<b>租金 ≤ 3000</b>、<b>二室</b>、<b>有电梯</b>。还有一个不确定：「沙河口」可以指行政区，也可以指附近的片区，你要哪一个？
+                <div class="q">
+                  <button>沙河口区 · 18 套</button>
+                  <button>星海广场 · 4 套</button>
+                  <button>西安路 · 6 套</button>
+                  <button class="skip">跳过</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="msg user">
+              <p class="who"><span class="ava-u">肖</span></p>
+              <div class="bubble">沙河口区</div>
+            </div>
+
+            <div class="msg agent">
+              <p class="who"><span class="ava-a">助</span>找房助手</p>
+              <div class="bubble">
+                按「沙河口区 · 二室 · ≤3000 · 有电梯」共找到 6 套，按综合排序先看这 3 套：
+                <div class="mini">
+          <a href="detail.html">
+            <img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="" loading="lazy">
+            <div class="b"><p class="t">星海广场 2室1厅</p><p class="p"><b>3,200</b> 元/月</p></div>
+          </a>
+          <a href="detail.html">
+            <img src="../assets/kitchen-interior-of-apartment-in-brisbane-2025.jpg" alt="" loading="lazy">
+            <div class="b"><p class="t">西安路 2室1厅</p><p class="p"><b>2,650</b> 元/月</p></div>
+          </a>
+          <a href="detail.html">
+            <img src="../assets/bedroom-interior-of-apartment-in-brisbane-2025.jpg" alt="" loading="lazy">
+            <div class="b"><p class="t">和平广场 1室1厅</p><p class="p"><b>1,850</b> 元/月</p></div>
+          </a></div>
+              </div>
+              <div class="q">
+                <button>只要近地铁</button>
+                <button>面积 80 平以上</button>
+                <button class="skip">就这些</button>
+              </div>
+            </div>
+
+            <div class="msg user">
+              <p class="who"><span class="ava-u">肖</span></p>
+              <div class="bubble">第二套离地铁远吗</div>
+            </div>
+
+            <div class="msg agent">
+              <p class="who"><span class="ava-a">助</span>找房助手</p>
+              <div class="bubble">
+                第二套「西安路 · 2室1厅」登记的地铁线路是 1 号线，地址在西安路 6 号，步行约 480 米；第一套「星海广场」是 320 米。
+                它比第一套远 160 米，租金低 550 元/月，面积小 8 ㎡。
+              </div>
+              <p class="hint">这两条信息来自房源登记的字段与地址，未填写的字段不会被推测。</p>
+            </div>
+          </div>
+
+          <form class="composer" onsubmit="return false">
+            <textarea aria-label="继续提问" placeholder="继续问，例如「这两套哪个更划算」"></textarea>
+            <button class="btn send" type="submit">发送</button>
+          </form>
+          <p class="hint">Enter 发送 · Shift + Enter 换行 · 回答基于房源结构化字段与平台统计</p>
+        </div>
+
+        <aside class="side">
+          <div class="hd"><b>本次候选</b><span>4 套</span></div>
+          <div class="result">
+            <img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt=""><div><p class="t">星海广场 · 2室1厅</p><p class="m">86㎡ · 南北 · 320 m 到地铁</p><p class="p"><b>3,200</b> 元/月</p></div>
+          </div>
+          <div class="result">
+            <img src="../assets/kitchen-interior-of-apartment-in-brisbane-2025.jpg" alt=""><div><p class="t">西安路 · 2室1厅</p><p class="m">78㎡ · 朝南 · 480 m 到地铁</p><p class="p"><b>2,650</b> 元/月</p></div>
+          </div>
+          <div class="result">
+            <img src="../assets/bedroom-interior-of-apartment-in-brisbane-2025.jpg" alt=""><div><p class="t">和平广场 · 1室1厅</p><p class="m">52㎡ · 朝南 · 有电梯</p><p class="p"><b>1,850</b> 元/月</p></div>
+          </div>
+          <div class="result">
+            <img src="../assets/bedroom-interior-of-apartment-in-brisbane-2025-2.jpg" alt=""><div><p class="t">马栏广场 · 2室1厅</p><p class="m">74㎡ · 南北 · 有电梯</p><p class="p"><b>2,300</b> 元/月</p></div>
+          </div>
+          <button class="btn ghost" style="width:100%;margin-top:12px">生成对比表</button>
+        </aside>
+      </div>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

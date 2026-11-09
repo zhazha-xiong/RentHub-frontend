@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>注册 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="auth">
+    <aside class="auth-art">
+      <img src="../assets/modern-living-room-with-stylish-furniture-and.jpg" alt="房源实拍，演示图片">
+      <div class="auth-art-in">
+        <a class="brand" href="login.html">栖居<span class="brand-en">RentHub</span></a>
+        <p class="tagline">在大连，找到下一年住的地方</p>
+      </div>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-box">
+
+        <h1>注册</h1>
+
+        <div class="role-switch two" role="tablist" aria-label="注册身份">
+          <button class="on" role="tab" aria-selected="true">租客</button>
+          <button role="tab" aria-selected="false">商家</button>
+        </div>
+
+        <form class="auth-fields" onsubmit="return false">
+          <div class="field"><label for="acct2">账号</label>
+            <input type="text" id="acct2" placeholder="4~20 位字母或数字"></div>
+          <div class="field"><label for="pwd2">密码</label>
+            <input type="password" id="pwd2" placeholder="8~20 位，含字母与数字"></div>
+          <div class="field"><label for="pwd3">确认密码</label>
+            <input type="password" id="pwd3" placeholder="再输入一次"></div>
+          <button class="btn auth-btn" type="submit">注册并进入</button>
+        </form>
+
+        <p class="auth-alt">已有账号？<a href="login.html">去登录</a></p>
+        <p class="hint">昵称由系统随机生成，注册后可在「个人信息」里修改；注册商家后需要先提交资质，通过后才能上架房源。</p>
+      </div>
+      <p class="auth-foot">栖居 RentHub · 软件工程综合实训 · 全部数据为教学演示</p>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

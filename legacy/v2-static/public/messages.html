@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通知中心 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="index.html">找房</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">肖</span><span class="uname">肖福晟</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="favorites.html">我的收藏<span class="badge">6</span></a><a href="orders.html">我的订单<span class="badge">2</span></a><a href="messages.html" aria-current="page">通知中心<span class="badge">3</span></a><a href="profile.html">个人信息</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="merchant-listings.html">商家端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <div class="head">
+        <h1>通知中心<span class="unread-chip">3 条未读</span></h1>
+        <div class="right"><button class="btn ghost sm">全部标为已读</button></div>
+      </div>
+      <nav class="tabs"><a href="#" class="on">全部</a><a href="#">订单</a><a href="#">房源</a><a href="#">系统</a></nav>
+
+      <article class="note unread">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="nb">
+          <p class="nt">商家已接单</p>
+          <p class="nx">星辰公寓已确认你的订单 RH20261104001，房源已为你锁定。</p>
+        </div>
+        <time class="tm">10 分钟前</time>
+      </article>
+
+      <article class="note unread">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="nb">
+          <p class="nt">你收藏的房源已下架</p>
+          <p class="nx">「青泥洼桥 · 单间」已被商家下架，你可以看看相似房源。</p>
+        </div>
+        <time class="tm">今天 09:12</time>
+      </article>
+
+      <article class="note unread">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="nb">
+          <p class="nt">订单待商家确认</p>
+          <p class="nx">订单 RH20261104001 已提交，商家将在 24 小时内确认。</p>
+        </div>
+        <time class="tm">今天 08:40</time>
+      </article>
+
+      <article class="note">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="nb">
+          <p class="nt">房源降价提醒</p>
+          <p class="nx">「西安路 · 2室1厅」租金由 2,800 元调整为 2,650 元。</p>
+        </div>
+        <time class="tm">昨天 18:02</time>
+      </article>
+
+      <article class="note">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="nb">
+          <p class="nt">退款已到账</p>
+          <p class="nx">订单 RH20260620011 的退款 6,205 元已原路退回（模拟）。</p>
+        </div>
+        <time class="tm">2026-06-21</time>
+      </article>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

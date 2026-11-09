@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>商家信息与资质 · 栖居 RentHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">栖居<span class="brand-en">RentHub</span></a>
+    <button class="city" type="button">大连<span class="chev">▾</span></button>
+    <nav class="links"><a href="merchant-listings.html">房源管理</a><a href="merchant-orders.html">订单管理</a></nav>
+    <div class="account">
+      <button class="avatar-btn" aria-haspopup="menu" aria-expanded="false" id="acct">
+        <span class="avatar">星</span><span class="uname">星辰公寓</span><span class="chev">▾</span>
+      </button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <a href="merchant-listings.html">我的房源<span class="badge">5</span></a><a href="merchant-orders.html">订单管理<span class="badge">2</span></a><a href="merchant-profile.html" aria-current="page">商家信息与资质</a>
+        <hr>
+        <p class="menu-label">原型演示：切换端</p>
+        <a role="menuitem" href="index.html">租客端</a><a role="menuitem" href="admin-review.html">管理员端</a>
+        <hr>
+        <a role="menuitem" href="login.html">退出登录</a>
+      </div>
+    </div>
+  </header>
+  <div class="sheet">
+    <div class="page ">
+
+      <h1>商家信息与资质</h1>
+      <div class="form">
+        <div>
+          <div class="fieldset">
+            <h2>店铺信息</h2>
+            <div class="grid2">
+              <div class="field"><label for="shop">店铺名称</label><input type="text" id="shop" value="星辰公寓"></div>
+              <div class="field"><label for="tel">联系电话</label><input type="text" id="tel" value="0411-8888 6621"></div>
+              <div class="field wide"><label for="intro">店铺简介</label><textarea id="intro" rows="3">沙河口与高新园区整租为主，房源均为自持或独家代理，支持随时看房。</textarea></div>
+            </div>
+          </div>
+
+          <div class="fieldset">
+            <h2>资质材料</h2>
+            <p class="hint" style="margin:0 0 10px">营业执照 · 法人身份证 · 已上传 2 张 · 支持 jpg/png，单张不超过 5MB</p>
+            <div class="shots" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <img src="../assets/apartment-building-in-china.jpg" alt="营业执照材料，演示图片" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px">
+              <img src="../assets/new-orleans-french-quarter-apartment-living-room.jpg" alt="法人身份材料，演示图片" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px">
+              <div style="aspect-ratio:4/3;border:1px dashed var(--control);border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:13px">上传新材料</div>
+            </div>
+          </div>
+
+          <div class="fieldset">
+            <h2>审核记录</h2>
+            <table class="table">
+              <thead><tr><th>时间</th><th>动作</th><th>材料</th><th>结果</th></tr></thead>
+              <tbody>
+                <tr><td>2026-10-28 14:02</td><td>管理员审核</td><td>2 张</td><td><span class="tag">通过</span></td></tr>
+                <tr><td>2026-10-26 09:40</td><td>提交资质</td><td>2 张</td><td><span class="tag plain">待审核</span></td></tr>
+                <tr><td>2026-09-30 11:15</td><td>首次驳回</td><td>1 张</td><td><span class="tag warn">缺法人身份证</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="summary">
+          <h2>资质状态</h2>
+          <p style="margin:0 0 12px"><span class="tag">已通过</span></p>
+          <div class="row"><span>最近提交</span><b>2026-10-26</b></div>
+          <div class="row"><span>审核时间</span><b>2026-10-28</b></div>
+          <div class="row"><span>审核人</span><b>管理员</b></div>
+          <div class="row"><span>可上架房源</span><b>5 套</b></div>
+          <button class="btn">保存店铺信息</button>
+          <button class="btn ghost" style="width:100%;margin-top:8px">重新提交资质</button>
+          <p class="fine">资质通过后才能上架房源；更新材料后需重新审核，期间在架房源不受影响。</p>
+        </aside>
+      </div>
+      <footer class="foot">
+        <span>栖居 RentHub · 大连 · 教学演示数据</span>
+        <span>演示图片来自 Wikimedia Commons（CC0 / CC BY 2.0 / CC BY-SA 4.0），出处见 credits.json</span>
+      </footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
