@@ -123,10 +123,13 @@ export async function request<T>(config: Parameters<AxiosInstance['request']>[0]
   return res.data
 }
 
-/** 文件上传：multipart/form-data，字段名 file + type */
+/** 文件上传：multipart/form-data，字段名 file + type
+ *  注意：不要手动设置 Content-Type —— 交给 axios 由 FormData 自动生成带 boundary 的头，
+ *  否则后端拿不到 boundary，multipart 解析会失败。
+ */
 export async function upload(file: File, type: 'listing_image' | 'qualification'): Promise<UploadResp> {
   const form = new FormData()
   form.append('file', file)
   form.append('type', type)
-  return request<UploadResp>({ url: '/files', method: 'POST', data: form, headers: { 'Content-Type': 'multipart/form-data' } })
+  return request<UploadResp>({ url: '/files', method: 'POST', data: form })
 }

@@ -107,9 +107,14 @@ watch(
   },
 )
 
+/* 筛选变化后 260ms 再请求：避免关键词逐字输入时打出一串请求 */
+let reloadTimer: ReturnType<typeof setTimeout> | null = null
 watch(
   () => [filters.keyword, filters.region, filters.metro, filters.rentBucket, filters.rooms, filters.rentType, filters.houseType, filters.orientation, filters.hasElevator, filters.nearMetro, filters.sort],
-  () => void load(true),
+  () => {
+    if (reloadTimer) clearTimeout(reloadTimer)
+    reloadTimer = setTimeout(() => void load(true), 260)
+  },
   { deep: true },
 )
 
