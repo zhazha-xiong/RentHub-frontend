@@ -1,0 +1,25 @@
+{
+  "name": "renthub-frontend",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "RentHub 前端仓库：web/ 为新前端（Vue 3 + Vite + Ant Design Vue 4，配套假后端与自动化测试），legacy/ 为旧版留档",
+  "scripts": {
+    "setup": "npm --prefix web ci",
+    "dev": "npm --prefix web run dev",
+    "mock": "npm --prefix web run mock",
+    "build": "npm --prefix web run build",
+    "preview": "npm --prefix web run preview",
+    "typecheck": "npm --prefix web run typecheck",
+    "test": "npm --prefix web run test",
+    "test:e2e": "npm --prefix web run test:e2e"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhazha-xiong/RentHub-frontend.git"
+  },
+  "license": "UNLICENSED"
+}
