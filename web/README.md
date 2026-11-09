@@ -114,7 +114,7 @@ web/
 | --- | --- | --- |
 | L1 契约 | 29 例：错误体、鉴权与锁定、refresh 轮换、列表筛选/游标、详情字段、收藏、下单金额与锁定、状态机、越权、支付幂等、资质闸门、审核校验、禁用联动、通知已读、SSE 事件序列、参考价降级/样本不足/补样本、tick 自动关单 | `npm test`（Vitest） |
 | L2 类型/构建 | `vue-tsc` 严格模式 + `vite build` | `npm run typecheck` / `npm run build` |
-| L3 E2E | 租客下单支付、商家接单完成、租客越权被拦、未登录回跳、管理员驳回校验、AI 流式问答 | `npm run test:e2e`（Playwright + chromium） |
+| L3 E2E | **只验证渲染与权限守卫，不模拟点击**：业务流程的「事情已经发生」用 API 直接制造（下单/接单/审核），页面侧注入令牌后断言内容 —— 首页瀑布流与筛选器、详情页图库/设施两栏/户型 spec/sticky 价格、三角色页面、越权拦截 | `npm run test:e2e`（Playwright + chromium） |
 
 CI 的缓存策略（减少每次运行时间）：
 
