@@ -1,0 +1,82 @@
+/* 全局基础样式：只放布局与排版基线，颜色/圆角走 antd theme token（见 src/theme.ts） */
+
+:root {
+  --rh-primary: #0958d9;
+  --rh-text: #1f1f1f;
+  --rh-text-2: #595959;
+  --rh-text-3: #737373;
+  --rh-border: #d9d9d9;
+  --rh-bg: #f5f5f5;
+  --rh-price: #d4380d;
+  --rh-card: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--rh-bg);
+  color: var(--rh-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--rh-primary);
+  text-decoration: none;
+}
+
+.rh-container {
+  width: min(1160px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.rh-price {
+  color: var(--rh-price);
+  font-weight: 600;
+}
+
+.rh-muted {
+  color: var(--rh-text-3);
+  font-size: 13px;
+}
+
+.rh-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.rh-page {
+  padding: 24px 0 48px;
+}
+
+.rh-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+}
+
+.rh-empty {
+  padding: 48px 0;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .rh-container {
+    width: calc(100% - 20px);
+  }
+  .rh-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
