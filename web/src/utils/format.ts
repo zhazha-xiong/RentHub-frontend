@@ -50,6 +50,36 @@ export const QUALIFICATION_STATUS: Record<string, { text: string; color: string 
 
 export const RENT_TYPE: Record<string, string> = { whole: '整租', shared: '合租' }
 
+/**
+ * 状态标签的 class —— RTM 63（订单）/ 84（房源）/ 110（资质）规定三色：
+ *   橙 = 待确认、已出租、待审核
+ *   绿 = 在架、已确认、已通过
+ *   灰 = 已完成、已取消、已下架、已驳回
+ *
+ * 集中维护一份，页面不要各写一遍；颜色变体在 styles/global.css 的 .tag.green/.orange/.gray。
+ */
+export const ORDER_TAG: Record<string, string> = {
+  pending: 'tag orange',
+  confirmed: 'tag green',
+  completed: 'tag gray',
+  rejected: 'tag orange',
+  cancelled: 'tag gray',
+}
+
+export const LISTING_TAG: Record<string, string> = {
+  online: 'tag green',
+  rented: 'tag orange',
+  offline: 'tag gray',
+  locked: 'tag gray',
+}
+
+export const QUALIFICATION_TAG: Record<string, string> = {
+  not_submitted: 'tag gray',
+  pending: 'tag orange',
+  approved: 'tag green',
+  rejected: 'tag gray',
+}
+
 /** 2026-11-05 → 明天 */
 export function tomorrow(): string {
   const d = new Date(Date.now() + 24 * 3600 * 1000)

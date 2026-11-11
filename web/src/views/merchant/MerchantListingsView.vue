@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { listingApi, merchantApi } from '@/api'
-import { LISTING_STATUS, dateOnly, money } from '@/utils/format'
+import { LISTING_STATUS, dateOnly, money, LISTING_TAG as STATUS_TAG } from '@/utils/format'
 
 /**
  * 商家 · 房源管理 —— 结构沿用 v2 merchant-listings.html：
@@ -24,13 +24,6 @@ type Row = {
   published_at: string | null
 }
 
-/** 状态 → v2 现有的 tag 变体 */
-const STATUS_TAG: Record<string, string> = {
-  online: 'tag',
-  rented: 'tag hue',
-  offline: 'tag plain',
-  locked: 'tag warn',
-}
 
 const router = useRouter()
 const rows = ref<Row[]>([])

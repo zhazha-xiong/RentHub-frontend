@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { adminApi } from '@/api'
 import type { QualificationItem } from '@/api/types'
-import { QUALIFICATION_STATUS, dateTime } from '@/utils/format'
+import { QUALIFICATION_STATUS, dateTime, QUALIFICATION_TAG as STATUS_TAG } from '@/utils/format'
 
 /**
  * 管理员 · 资质审核 —— 结构沿用 v2 admin-review.html：
@@ -18,13 +18,6 @@ const reason = ref('')
 const reasonError = ref('')
 const submitting = ref(false)
 const acting = ref(false)
-
-const STATUS_TAG: Record<string, string> = {
-  not_submitted: 'tag plain',
-  pending: 'tag warn',
-  approved: 'tag',
-  rejected: 'tag plain',
-}
 
 const selected = computed(() => rows.value.find((r) => r.id === selectedId.value) ?? null)
 

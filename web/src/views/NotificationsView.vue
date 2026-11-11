@@ -115,7 +115,7 @@ onMounted(load)
         <p class="nt">{{ n.title }}</p>
         <p class="nx">{{ n.body }}</p>
       </div>
-      <time class="tm">{{ dateTime(n.created_at) }}</time>
+      <time class="tm">{{ n.created_label || dateTime(n.created_at) }}</time>
     </article>
   </div>
 </template>

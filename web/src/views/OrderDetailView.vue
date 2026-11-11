@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { orderApi } from '@/api'
 import type { OrderDetail } from '@/api/types'
-import { ORDER_STATUS, dateTime, money } from '@/utils/format'
+import { ORDER_STATUS, dateTime, money, ORDER_TAG as STATUS_TAG } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 
 /**
@@ -21,14 +21,6 @@ const acting = ref(false)
 const id = computed(() => String(route.params.id))
 const status = computed(() => (order.value ? ORDER_STATUS[order.value.status] : null))
 
-/** 状态 → v2 现有的 tag 变体 */
-const STATUS_TAG: Record<string, string> = {
-  pending: 'tag warn',
-  confirmed: 'tag ok',
-  completed: 'tag plain',
-  rejected: 'tag warn',
-  cancelled: 'tag plain',
-}
 
 async function load() {
   loading.value = true

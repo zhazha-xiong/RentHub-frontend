@@ -251,6 +251,8 @@ export interface Notice {
   target_id: number | null
   is_read: boolean
   created_at: string
+  /** 展示用相对时间（10 分钟前 / 今天 09:12），由后端按假后端固定时钟算好 */
+  created_label?: string
 }
 
 export interface CodeName {

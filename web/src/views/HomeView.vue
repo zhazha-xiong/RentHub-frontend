@@ -43,9 +43,9 @@ const rentRangeDirty = computed(() => rentMinText.value.trim() !== '' || rentMax
 
 const items = ref<ListingCard[]>([])
 const cursor = ref<string | null>(null)
+/** 本次筛选命中的套数（RTM 31 要求随筛选变化） */
 const total = ref(0)
-/** 全站在架数与今日新上：由后端 stats 给（v2 右侧那行 note） */
-const onlineTotal = ref(0)
+/** 今日新上套数：由后端 stats 给（与筛选无关的全站增量） */
 const todayNew = ref(0)
 /** 一句话搜索没有精确命中时后端给的说明（空字符串表示精确命中） */
 const relaxedNote = ref('')
@@ -114,9 +114,9 @@ async function load(reset = true) {
     items.value = reset ? data.items : [...items.value, ...data.items]
     cursor.value = data.next_cursor
     if (reset) {
+      /* RTM 31：统计随筛选变化 —— total 是本次筛选结果数，不是全站在架数 */
       total.value = (data as { total?: number }).total ?? data.items.length
-      const stats = (data as { stats?: { total?: number; today_new?: number } }).stats
-      onlineTotal.value = stats?.total ?? total.value
+      const stats = (data as { stats?: { today_new?: number } }).stats
       todayNew.value = stats?.today_new ?? 0
       relaxedNote.value = (data as { relaxed_note?: string }).relaxed_note ?? ''
       loaded.value = true
@@ -352,7 +352,7 @@ onBeforeUnmount(() => {
           {{ s.label }}
         </button>
       </div>
-      <p class="note">{{ onlineTotal }} 套在架 · 今日新上 {{ todayNew }} 套</p>
+      <p class="note">{{ total }} 套符合条件<template v-if="todayNew"> · 今日新上 {{ todayNew }} 套</template></p>
     </div>
 
     <!-- 一句话搜索没精确命中时，把后端给的说明原样显示出来（不假装精确结果） -->

@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { adminApi } from '@/api'
-import { LISTING_STATUS, money } from '@/utils/format'
+import { LISTING_STATUS, money, LISTING_TAG as STATUS_TAG } from '@/utils/format'
 
 /**
  * 管理员 · 房源处置 —— 用 v2 的 .head / .toolbar / table.table 骨架，
@@ -18,13 +18,6 @@ type Row = {
   published_at: string | null
 }
 
-/** 状态 → v2 现有的 tag 变体 */
-const STATUS_TAG: Record<string, string> = {
-  online: 'tag',
-  rented: 'tag hue',
-  offline: 'tag plain',
-  locked: 'tag warn',
-}
 
 const rows = ref<Row[]>([])
 const loading = ref(true)

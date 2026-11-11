@@ -389,6 +389,32 @@ function orderDto(o, detail = false) {
   }
 }
 
+/**
+ * 相对时间文案（RTM 74：通知显示「10 分钟前 / 今天 09:12」）
+ *
+ * 必须由后端算：假后端的「当前时间」固定为 2026-11-05，前端按浏览器真实时钟
+ * 算相对时间会得到负数或「未来」。时区固定按 +08:00 展示，不依赖运行环境的本地时区。
+ */
+function relativeLabel(iso) {
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return ''
+  const diff = S.now - t
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return '刚刚'
+  if (min < 60) return `${min} 分钟前`
+
+  /* 统一换算到 +08:00 再取年月日时分 */
+  const cn = (ts) => new Date(ts + 8 * 3600 * 1000)
+  const d = cn(t)
+  const now = cn(S.now)
+  const pad = (n) => String(n).padStart(2, '0')
+  const hhmm = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
+  const dayOf = (x) => `${x.getUTCFullYear()}-${x.getUTCMonth()}-${x.getUTCDate()}`
+  if (dayOf(d) === dayOf(now)) return `今天 ${hhmm}`
+  if (dayOf(d) === dayOf(cn(S.now - 86400000))) return `昨天 ${hhmm}`
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+}
+
 const noticeDto = (n) => ({
   id: n.id,
   type: n.type,
@@ -398,6 +424,8 @@ const noticeDto = (n) => ({
   target_id: n.targetId,
   is_read: n.isRead,
   created_at: n.createdAt,
+  /* 展示用相对时间，前端直接显示，不做推断 */
+  created_label: relativeLabel(n.createdAt),
 })
 
 function notificationCount(userId) {

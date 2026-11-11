@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { orderApi } from '@/api'
 import type { OrderDetail } from '@/api/types'
-import { ORDER_STATUS, dateTime, money } from '@/utils/format'
+import { ORDER_STATUS, dateTime, money, ORDER_TAG as STATUS_TAG } from '@/utils/format'
 
 /**
  * 商家 · 订单管理 —— 结构沿用 v2 merchant-orders.html：
@@ -32,14 +32,6 @@ const TABS = computed(() => [
   { key: 'rejected', label: '已拒绝', n: counts.value.rejected ?? 0 },
 ])
 
-/** 状态 → v2 现有的 tag 变体 */
-const STATUS_TAG: Record<string, string> = {
-  pending: 'tag warn',
-  confirmed: 'tag ok',
-  completed: 'tag plain',
-  rejected: 'tag warn',
-  cancelled: 'tag plain',
-}
 
 async function load() {
   loading.value = true

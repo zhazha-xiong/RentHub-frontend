@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { merchantApi, upload } from '@/api'
 import { useAuthStore } from '@/stores/auth'
-import { QUALIFICATION_STATUS, dateOnly } from '@/utils/format'
+import { QUALIFICATION_STATUS, dateOnly, QUALIFICATION_TAG as STATUS_TAG } from '@/utils/format'
 
 /**
  * 商家 · 信息与资质 —— 结构沿用 v2 merchant-profile.html：
@@ -30,14 +30,6 @@ const STATUS_HINT: Record<string, string> = {
   pending: '资质已提交，等待管理员审核',
   approved: '资质已通过，可以发布与上架房源',
   rejected: '资质被驳回，请根据原因修改后重新提交',
-}
-
-/** 状态 → v2 现有的 tag 变体 */
-const STATUS_TAG: Record<string, string> = {
-  not_submitted: 'tag plain',
-  pending: 'tag warn',
-  approved: 'tag ok',
-  rejected: 'tag warn',
 }
 
 async function load() {

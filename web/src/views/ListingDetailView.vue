@@ -105,10 +105,13 @@ onMounted(load)
   <div>
     <IconDefs />
 
+    <!-- RTM 34：区域 / 小区 / 房源 三级，前两级可点击回列表 -->
     <p v-if="detail" class="crumbs">
-      <router-link to="/">找房</router-link>
-      <span>/</span>{{ detail.region_name }}
-      <template v-if="detail.community"><span>/</span>{{ detail.community }}</template>
+      <router-link to="/">{{ detail.region_name }}</router-link>
+      <template v-if="detail.community">
+        <span>/</span><router-link to="/">{{ detail.community }}</router-link>
+      </template>
+      <span>/</span>{{ detail.title }}
     </p>
 
     <p v-if="loading" class="loading-hint">正在加载房源…</p>
@@ -147,12 +150,12 @@ onMounted(load)
         <section class="panel">
           <h2>房源描述</h2>
           <p class="prose">{{ detail.description }}</p>
-          <!-- kv 只渲染后端真的给了的字段，缺了就整项不显示（前端不编造默认值） -->
+          <!-- RTM 37：租约四项常显，商家没填时写「未填写」（是事实陈述，不是编造默认值） -->
           <div class="kv">
-            <span v-if="detail.payment_method"><b>付款方式</b> {{ detail.payment_method }}</span>
-            <span v-if="detail.spec.min_lease_months"><b>最短租期</b> {{ detail.spec.min_lease_months }} 个月</span>
-            <span v-if="detail.viewing_method"><b>看房</b> {{ detail.viewing_method }}</span>
-            <span v-if="detail.parking"><b>车位</b> {{ detail.parking }}</span>
+            <span><b>付款方式</b> {{ detail.payment_method || '未填写' }}</span>
+            <span><b>最短租期</b> {{ detail.spec.min_lease_months ? `${detail.spec.min_lease_months} 个月` : '未填写' }}</span>
+            <span><b>看房</b> {{ detail.viewing_method || '未填写' }}</span>
+            <span><b>车位</b> {{ detail.parking || '未填写' }}</span>
           </div>
         </section>
 
