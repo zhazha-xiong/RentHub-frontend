@@ -177,11 +177,15 @@ CI 的时间都花在哪（实测）：
 | 现象 | 处理 |
 | --- | --- |
 | `EADDRINUSE :8787` | 已有假后端在跑：`MOCK_PORT=8788 npm run dev`，或先关掉旧进程 |
+| `listen EACCES ... :5173` | Windows 的 WinNAT（Hyper-V/WSL2/Docker）把 5173 所在段保留了（常见 `5141–5240`）。换端口：`npm run dev -- --port 5273`；或管理员 `net stop winnat && net start winnat` 释放。查保留段：`netsh interface ipv4 show excludedportrange protocol=tcp`。详见 `../docs/local-dev-troubleshooting.md` |
+| `'vite' 不是内部或外部命令` | `node_modules/.bin` 缺失（依赖不是 npm 正常装的），执行 `npm ci` 重装 |
 | `spawn EPERM`（构建或测试起不来） | 受限沙箱里 esbuild 无法 spawn 子进程。改用 CI 跑，或换到有完整权限的环境；**不是代码问题** |
 | `Executable doesn't exist .../ms-playwright` | 本地没装浏览器：`npx playwright install chromium`。注意不要把 `PLAYWRIGHT_BROWSERS_PATH` 设成 `~/...`——Actions 的 env 不展开 `~` |
 | 未登录打开首页却跳到 `/login` | 已知问题：拦截器把所有 401 当"登录过期"（待修）。先用演示账号登录 |
 | 房源图片 404 | 假后端从 `legacy/v2-static/assets` 读真实照片；删了 `legacy/` 就没图（会回退 SVG 占位） |
 | 通知时间显示成"未来" | 说明前端自己在算时间。展示文案应读后端给的 `created_label` |
+
+> 更细的排查记录与教训见 [`../docs/local-dev-troubleshooting.md`](../docs/local-dev-troubleshooting.md)。
 
 ## 11. 已知取舍（demo 范围）
 

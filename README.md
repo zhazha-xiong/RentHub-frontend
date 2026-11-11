@@ -72,6 +72,7 @@ npm 依赖走 `setup-node` 缓存，**浏览器不缓存 Chromium**（安装 21s
 - [`docs/contract-supplements.md`](docs/contract-supplements.md) —— 假后端相对文档多出的接口/字段/错误码
 - [`docs/ui-v2-alignment.md`](docs/ui-v2-alignment.md) —— 21 个页面与 v2 的对应关系、看房页 sticky 压缩、图片真源
 - [`docs/rtm-differences.md`](docs/rtm-differences.md) —— 与《需求跟踪矩阵》的差异台账（已对齐 / 不采纳 / 待拍板）
+- [`docs/local-dev-troubleshooting.md`](docs/local-dev-troubleshooting.md) —— 本地环境排错与教训（Windows 端口保留、`.bin` 缺失、spawn EPERM 等）
 - [`web/README.md`](web/README.md) —— 新前端的启动方式、端口与环境变量、目录、页面清单与假后端行为
 
 ## 约定
