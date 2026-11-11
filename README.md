@@ -13,16 +13,31 @@ RentHub: A Smart House Rental Platform with AI Agents
 
 ## 一键跑起来
 
+**前置**：Node ≥ 18（CI 用 20），npm 9+。
+
 ```bash
 git clone git@github.com:zhazha-xiong/RentHub-frontend.git
 cd RentHub-frontend/web
-npm ci
-npm run dev            # http://127.0.0.1:5173/ ，自动拉起假后端
+npm ci                 # 严格按 package-lock 安装
+npm run dev            # http://127.0.0.1:5173/ ，Vite 自动拉起假后端（:8787）
 ```
 
-演示账号（密码都是 `renthub123`）：租客 `xiaofs`、商家 `xingchen`、管理员 `guanli`。
+打开 `http://127.0.0.1:5173/` 就是首页。演示账号（密码都是 `renthub123`）：租客 `xiaofs`、商家 `xingchen`、管理员 `guanli`、资质待审商家 `haibin`。
 
+其它跑法：
+
+```bash
+npm run mock           # 只起假后端 :8787（给 curl / 别的工具用）
+npm run build          # 类型检查 + 生产构建 → web/dist
+npm run preview        # 预览构建产物 :4173（E2E 走这条）
+VITE_API_BASE=https://api.example.com/api/v1 npm run dev   # 接真后端
+```
+
+> **本地只跑 `npm run dev`，测试全部交给 CI**。受限沙箱里 `vite build` / `vitest` / `playwright` 可能报 `spawn EPERM`（esbuild 起不了子进程），这不是代码问题。
+>
 > 旧版仍可单独运行（端口 8788），见 [`legacy/README.md`](legacy/README.md)。
+>
+> 端口、环境变量、常见问题（`EADDRINUSE`、浏览器未安装、未登录被跳登录等）见 [`web/README.md`](web/README.md)。
 
 ## 为什么有假后端
 
@@ -44,7 +59,10 @@ Bearer 鉴权、统一错误体、游标分页、订单五态状态机、房源�
 | L3 | Playwright E2E：主流程 + 三角色越权 |
 
 CI：[`.github/workflows/web-ci.yml`](.github/workflows/web-ci.yml)，改动 `web/**` 时触发；
-npm 依赖与 Playwright 浏览器都走 Actions 缓存，L3 复用 L2 的构建产物，失败上传报告 artifact。
+npm 依赖走 `setup-node` 缓存，**浏览器不缓存 Chromium**（安装 21s 里 10.8s 是 apt 系统库、缓存不了，改用 runner 预装的 Google Chrome，只装 2MB 的 ffmpeg），L3 复用 L2 的构建产物，失败上传报告 artifact。
+
+美术与页面结构沿用 `legacy/v2-static`（`web/src/styles/legacy.css` 与 v2 的 `style.css` 字节一致），
+与需求跟踪矩阵（RTM）的差异和取舍见 [`docs/rtm-differences.md`](docs/rtm-differences.md)。
 
 ## 文档
 
@@ -52,7 +70,9 @@ npm 依赖与 Playwright 浏览器都走 Actions 缓存，L3 复用 L2 的构建
 - [`docs/db-indexes.sql`](docs/db-indexes.sql) —— 索引与并发约束建议（技术文档只给了 DDL，没给索引）
 - [`docs/price-reference.md`](docs/price-reference.md) —— 参考价口径降级、样本不足默认行为、Redis 存中位数
 - [`docs/contract-supplements.md`](docs/contract-supplements.md) —— 假后端相对文档多出的接口/字段/错误码
-- [`web/README.md`](web/README.md) —— 新前端的运行、目录、页面清单与假后端行为
+- [`docs/ui-v2-alignment.md`](docs/ui-v2-alignment.md) —— 21 个页面与 v2 的对应关系、看房页 sticky 压缩、图片真源
+- [`docs/rtm-differences.md`](docs/rtm-differences.md) —— 与《需求跟踪矩阵》的差异台账（已对齐 / 不采纳 / 待拍板）
+- [`web/README.md`](web/README.md) —— 新前端的启动方式、端口与环境变量、目录、页面清单与假后端行为
 
 ## 约定
 
